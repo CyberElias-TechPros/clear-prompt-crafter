@@ -11,9 +11,28 @@
   }
 }
 
+@keyframes gradient-y {
+  0% {
+    background-position: 50% 0%;
+  }
+  50% {
+    background-position: 50% 100%;
+  }
+  100% {
+    background-position: 50% 0%;
+  }
+}
+
 @keyframes text-gradient {
-  0% { background-position: 0% 50%; }
-  100% { background-position: 100% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 @keyframes float {
@@ -30,19 +49,69 @@
 
 @keyframes pulse {
   0% {
-    opacity: 0.6;
-  }
-  50% {
+    transform: scale(1);
     opacity: 1;
   }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
   100% {
-    opacity: 0.6;
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-from-bottom {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-from-right {
+  from {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-from-left {
+  from {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
   }
 }
 
 .animate-gradient-x {
   background-size: 200% 200%;
   animation: gradient-x 15s ease infinite;
+}
+
+.animate-gradient-y {
+  background-size: 200% 200%;
+  animation: gradient-y 15s ease infinite;
 }
 
 .animate-text {
@@ -55,142 +124,41 @@
 }
 
 .animate-pulse-slow {
-  animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation: pulse 4s ease-in-out infinite;
 }
 
-.animate-in {
-  animation-duration: 0.3s;
-  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  animation-fill-mode: both;
+.animate-fade-in {
+  animation: fade-in 0.5s ease forwards;
 }
 
-.fade-in {
-  opacity: 0;
-  animation-name: fadeIn;
+.animate-slide-in-bottom {
+  animation: slide-in-from-bottom 0.6s ease forwards;
 }
 
-.slide-in-from-right {
-  transform: translateX(100%);
-  animation-name: slideInFromRight;
+.animate-slide-in-right {
+  animation: slide-in-from-right 0.6s ease forwards;
 }
 
-.slide-in-from-left {
-  transform: translateX(-100%);
-  animation-name: slideInFromLeft;
+.animate-slide-in-left {
+  animation: slide-in-from-left 0.6s ease forwards;
 }
 
-.slide-in-from-top {
-  transform: translateY(-100%);
-  animation-name: slideInFromTop;
+.stagger-1 {
+  animation-delay: 0.1s;
 }
 
-.slide-in-from-bottom {
-  transform: translateY(100%);
-  animation-name: slideInFromBottom;
+.stagger-2 {
+  animation-delay: 0.2s;
 }
 
-.zoom-in {
-  transform: scale(0.95);
-  opacity: 0;
-  animation-name: zoomIn;
+.stagger-3 {
+  animation-delay: 0.3s;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+.stagger-4 {
+  animation-delay: 0.4s;
 }
 
-@keyframes slideInFromRight {
-  from {
-    transform: translateX(100%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-@keyframes slideInFromLeft {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-@keyframes slideInFromTop {
-  from {
-    transform: translateY(-100%);
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideInFromBottom {
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-
-@keyframes zoomIn {
-  from {
-    transform: scale(0.95);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-/* Staggered animations for list items */
-.stagger-item {
-  opacity: 0;
-  transform: translateY(10px);
-  animation: staggerFadeIn 0.5s ease forwards;
-}
-
-@keyframes staggerFadeIn {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Apply staggered animation to list items */
-.stagger-list > *:nth-child(1) { animation-delay: 0.1s; }
-.stagger-list > *:nth-child(2) { animation-delay: 0.2s; }
-.stagger-list > *:nth-child(3) { animation-delay: 0.3s; }
-.stagger-list > *:nth-child(4) { animation-delay: 0.4s; }
-.stagger-list > *:nth-child(5) { animation-delay: 0.5s; }
-.stagger-list > *:nth-child(6) { animation-delay: 0.6s; }
-.stagger-list > *:nth-child(7) { animation-delay: 0.7s; }
-.stagger-list > *:nth-child(8) { animation-delay: 0.8s; }
-.stagger-list > *:nth-child(9) { animation-delay: 0.9s; }
-.stagger-list > *:nth-child(10) { animation-delay: 1s; }
-
-/* Hover animations */
-.hover-scale {
-  transition: transform 0.3s ease;
-}
-
-.hover-scale:hover {
-  transform: scale(1.05);
-}
-
-.hover-lift {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.hover-lift:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+.stagger-5 {
+  animation-delay: 0.5s;
 }

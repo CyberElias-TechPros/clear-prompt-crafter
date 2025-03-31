@@ -15,6 +15,9 @@ import PromptDetailPage from "./pages/community/prompt/[id]";
 import LeaderboardPage from "./pages/leaderboard";
 import ProfilePage from "./pages/profile";
 import SettingsPage from "./pages/settings";
+import TermsPage from "./pages/terms";
+import PrivacyPage from "./pages/privacy";
+import ContactPage from "./pages/contact";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -83,6 +86,11 @@ const App = () => (
                 <LeaderboardPage />
               </PageLayout>
             } />
+            
+            {/* Public standalone routes */}
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/contact" element={<ContactPage />} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

@@ -10,7 +10,7 @@ export type UserProfile = {
 export type UserSettings = {
   user_id: string;
   allow_learning: boolean;
-  theme: 'light' | 'dark';
+  theme: 'light' | 'dark' | string;
   updated_at: string;
 };
 
@@ -31,10 +31,10 @@ export type Prompt = {
   description: string | null;
   created_at: string;
   updated_at: string;
+  is_public: boolean;
   sections?: PromptSection[];
   likes?: number;
   views?: number;
-  is_public?: boolean;
 };
 
 export type PromptSection = {
@@ -102,6 +102,7 @@ export type Comment = {
   content: string;
   created_at: string;
   updated_at: string;
+  user?: UserProfile;
 };
 
 export type Like = {
@@ -120,4 +121,13 @@ export type SupportedAIService = {
   description: string;
   authUrl: string;
   apiKeyTitle?: string;
+};
+
+// Leaderboard types
+export type LeaderboardUser = {
+  user_id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  total_points: number;
+  badge_count: number;
 };
