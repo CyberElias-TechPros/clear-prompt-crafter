@@ -9,6 +9,9 @@ import Index from "./pages/Index";
 import AuthPage from "./pages/auth";
 import AIServicesPage from "./pages/ai-services";
 import ConnectServicePage from "./pages/ai-services/connect/[serviceId]";
+import CommunityPage from "./pages/community";
+import PromptDetailPage from "./pages/community/prompt/[id]";
+import LeaderboardPage from "./pages/leaderboard";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -38,6 +41,9 @@ const App = () => (
                 <ConnectServicePage />
               </ProtectedRoute>
             } />
+            <Route path="/community" element={<CommunityPage />} />
+            <Route path="/community/prompt/:id" element={<PromptDetailPage />} />
+            <Route path="/leaderboard" element={<LeaderboardPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -32,6 +32,9 @@ export type Prompt = {
   created_at: string;
   updated_at: string;
   sections?: PromptSection[];
+  likes?: number;
+  views?: number;
+  is_public?: boolean;
 };
 
 export type PromptSection = {
@@ -53,6 +56,8 @@ export type PromptTemplate = {
   created_at: string;
   updated_at: string;
   sections?: TemplateSection[];
+  likes?: number;
+  views?: number;
 };
 
 export type TemplateSection = {
@@ -70,6 +75,40 @@ export type UserHistory = {
   user_id: string;
   action_type: string;
   data: any;
+  created_at: string;
+};
+
+// Community and Gamification types
+export type UserBadge = {
+  id: string;
+  user_id: string;
+  badge_type: string;
+  earned_at: string;
+};
+
+export type UserPoint = {
+  id: string;
+  user_id: string;
+  points: number;
+  reason: string;
+  earned_at: string;
+};
+
+export type Comment = {
+  id: string;
+  user_id: string;
+  prompt_id: string | null;
+  template_id: string | null;
+  content: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Like = {
+  id: string;
+  user_id: string;
+  prompt_id: string | null;
+  template_id: string | null;
   created_at: string;
 };
 
