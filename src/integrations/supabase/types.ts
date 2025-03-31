@@ -9,6 +9,90 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      comments: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          prompt_id: string | null
+          template_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          prompt_id?: string | null
+          template_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          prompt_id?: string | null
+          template_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_prompt_id_fkey"
+            columns: ["prompt_id"]
+            isOneToOne: false
+            referencedRelation: "prompts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "prompt_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      likes: {
+        Row: {
+          created_at: string | null
+          id: string
+          prompt_id: string | null
+          template_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          prompt_id?: string | null
+          template_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          prompt_id?: string | null
+          template_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "likes_prompt_id_fkey"
+            columns: ["prompt_id"]
+            isOneToOne: false
+            referencedRelation: "prompts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "likes_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "prompt_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -103,6 +187,7 @@ export type Database = {
           created_at: string | null
           description: string | null
           id: string
+          is_public: boolean | null
           title: string
           updated_at: string | null
           user_id: string
@@ -111,6 +196,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          is_public?: boolean | null
           title: string
           updated_at?: string | null
           user_id: string
@@ -119,6 +205,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          is_public?: boolean | null
           title?: string
           updated_at?: string | null
           user_id?: string
@@ -190,6 +277,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_badges: {
+        Row: {
+          badge_type: string
+          earned_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          badge_type: string
+          earned_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          badge_type?: string
+          earned_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_history: {
         Row: {
           action_type: string
@@ -210,6 +318,30 @@ export type Database = {
           created_at?: string | null
           data?: Json | null
           id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_points: {
+        Row: {
+          earned_at: string | null
+          id: string
+          points: number
+          reason: string
+          user_id: string
+        }
+        Insert: {
+          earned_at?: string | null
+          id?: string
+          points: number
+          reason: string
+          user_id: string
+        }
+        Update: {
+          earned_at?: string | null
+          id?: string
+          points?: number
+          reason?: string
           user_id?: string
         }
         Relationships: []
@@ -237,10 +369,52 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      user_leaderboard: {
+        Row: {
+          avatar_url: string | null
+          badge_count: number | null
+          full_name: string | null
+          total_points: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      get_public_prompts: {
+        Args: {
+          sort_by?: string
+          search_term?: string
+        }
+        Returns: {
+          id: string
+          title: string
+          description: string
+          created_at: string
+          updated_at: string
+          user_id: string
+          user_name: string
+          user_avatar: string
+          like_count: number
+        }[]
+      }
+      get_public_templates: {
+        Args: {
+          sort_by?: string
+          search_term?: string
+        }
+        Returns: {
+          id: string
+          title: string
+          description: string
+          created_at: string
+          updated_at: string
+          user_id: string
+          user_name: string
+          user_avatar: string
+          like_count: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
