@@ -47,8 +47,7 @@ serve(async (req) => {
       )
     }
 
-    // Here you would typically store the API key securely
-    // For now, we'll just record that the user has connected the service
+    // Store the API key securely in Supabase
     const { data, error } = await supabaseClient
       .from('user_ai_services')
       .upsert(

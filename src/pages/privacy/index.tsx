@@ -1,105 +1,150 @@
 
 import React from "react";
 import { Link } from "react-router-dom";
+import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-background py-12">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <Button variant="ghost" size="sm" asChild className="mb-6">
-          <Link to="/">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Home
-          </Link>
-        </Button>
+    <div className="container max-w-3xl py-12 animate-in fade-in duration-500">
+      <Link
+        to="/"
+        className="mb-8 inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground"
+      >
+        <ChevronLeft className="mr-1 h-4 w-4" />
+        Back to Home
+      </Link>
 
-        <h1 className="text-4xl font-bold mb-6">Privacy Policy</h1>
-        
-        <div className="prose prose-sm md:prose-base dark:prose-invert max-w-none">
-          <p className="text-lg text-muted-foreground mb-8">
-            Last updated: {new Date().toLocaleDateString()}
-          </p>
-
-          <h2 className="text-2xl font-semibold mt-8 mb-4">1. Information We Collect</h2>
-          <p>
-            Prompt-Gineer collects information that you provide directly to us:
-          </p>
-          <ul className="list-disc pl-6 mb-4">
-            <li>Account information (name, email, password)</li>
-            <li>Profile information (display name, profile picture)</li>
-            <li>Content you create or share (prompts, templates, comments)</li>
-            <li>Communications with us</li>
-            <li>Information about how you use our services</li>
-          </ul>
-
-          <h2 className="text-2xl font-semibold mt-8 mb-4">2. How We Use Your Information</h2>
-          <p>
-            We use the information we collect to:
-          </p>
-          <ul className="list-disc pl-6 mb-4">
-            <li>Provide, maintain, and improve our services</li>
-            <li>Create and maintain your account</li>
-            <li>Process transactions</li>
-            <li>Send you technical notices and support messages</li>
-            <li>Respond to your comments and questions</li>
-            <li>Develop new products and services</li>
-            <li>Monitor and analyze trends and usage</li>
-            <li>Protect against fraud and abuse</li>
-          </ul>
-
-          <h2 className="text-2xl font-semibold mt-8 mb-4">3. Information Sharing</h2>
-          <p>
-            Prompt-Gineer may share your information in the following circumstances:
-          </p>
-          <ul className="list-disc pl-6 mb-4">
-            <li>With your consent</li>
-            <li>With service providers who need access to perform services for us</li>
-            <li>To comply with legal obligations</li>
-            <li>In connection with a merger, sale, or acquisition</li>
-            <li>In an aggregated or anonymized form that cannot be used to identify you</li>
-          </ul>
-          
-          <h2 className="text-2xl font-semibold mt-8 mb-4">4. Your Choices</h2>
-          <p>
-            You can access and update certain information about your account in your profile settings. 
-            You can also request that we delete your personal information, though we may retain certain 
-            information as required by law or for legitimate business purposes.
-          </p>
-
-          <h2 className="text-2xl font-semibold mt-8 mb-4">5. Data Security</h2>
-          <p>
-            We take reasonable measures to help protect your personal information from loss, theft, 
-            misuse, unauthorized access, disclosure, alteration, and destruction. However, no internet 
-            or email transmission is ever fully secure or error-free.
-          </p>
-
-          <h2 className="text-2xl font-semibold mt-8 mb-4">6. International Data Transfers</h2>
-          <p>
-            Your information may be transferred to, and maintained on, computers located outside of your 
-            state, province, country, or other governmental jurisdiction where privacy laws may not be as 
-            protective as those in your jurisdiction.
-          </p>
-
-          <h2 className="text-2xl font-semibold mt-8 mb-4">7. Children's Privacy</h2>
-          <p>
-            Our services are not directed to children under 13, and we do not knowingly collect personal 
-            information from children under 13. If you are a parent or guardian and believe we have collected 
-            information from your child, please contact us.
-          </p>
-
-          <h2 className="text-2xl font-semibold mt-8 mb-4">8. Changes to This Policy</h2>
-          <p>
-            We may update this policy from time to time. We will notify you of any changes by posting the 
-            new Privacy Policy on this page. You are advised to review this Privacy Policy periodically for 
-            any changes.
-          </p>
-
-          <h2 className="text-2xl font-semibold mt-8 mb-4">9. Contact Us</h2>
-          <p>
-            If you have any questions about this Privacy Policy, please contact us at privacy@prompt-gineer.com.
-          </p>
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold">Privacy Policy</h1>
+          <p className="mt-2 text-muted-foreground">Last updated: April 3, 2025</p>
         </div>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold">1. Introduction</h2>
+          <p>
+            At Prompt-Gineer, we respect your privacy and are committed to protecting your personal data. This privacy policy will inform you about how we look after your personal data when you visit our website and tell you about your privacy rights and how the law protects you.
+          </p>
+          <p>
+            This privacy policy applies to all users of our platform, including those who create, share, and access AI prompts and related content.
+          </p>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold">2. Data We Collect</h2>
+          <p>
+            We may collect, use, store, and transfer different kinds of personal data about you which we have grouped as follows:
+          </p>
+          <ul className="list-disc pl-6 space-y-2">
+            <li><strong>Identity Data</strong> includes first name, last name, username, or similar identifier.</li>
+            <li><strong>Contact Data</strong> includes email address and telephone numbers.</li>
+            <li><strong>Technical Data</strong> includes internet protocol (IP) address, your login data, browser type and version, time zone setting and location, browser plug-in types and versions, operating system and platform, and other technology on the devices you use to access our website.</li>
+            <li><strong>Usage Data</strong> includes information about how you use our website, products, and services.</li>
+            <li><strong>Profile Data</strong> includes your username and password, your interests, preferences, feedback, and survey responses.</li>
+            <li><strong>Content Data</strong> includes prompts, templates, and other content you create, share, or interact with on our platform.</li>
+          </ul>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold">3. How We Use Your Data</h2>
+          <p>
+            We will only use your personal data when the law allows us to. Most commonly, we will use your personal data in the following circumstances:
+          </p>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Where we need to perform the contract we are about to enter into or have entered into with you.</li>
+            <li>Where it is necessary for our legitimate interests (or those of a third party) and your interests and fundamental rights do not override those interests.</li>
+            <li>Where we need to comply with a legal obligation.</li>
+          </ul>
+          <p>
+            Generally, we do not rely on consent as a legal basis for processing your personal data except in relation to sending direct marketing communications to you via email. You have the right to withdraw consent to marketing at any time by contacting us.
+          </p>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold">4. Data Sharing</h2>
+          <p>
+            We may share your personal data with the parties set out below for the purposes set out in this privacy policy:
+          </p>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Service providers who provide IT and system administration services.</li>
+            <li>Professional advisers including lawyers, bankers, auditors, and insurers who provide consultancy, banking, legal, insurance, and accounting services.</li>
+            <li>Regulators and other authorities who require reporting of processing activities in certain circumstances.</li>
+            <li>Third parties to whom we may choose to sell, transfer or merge parts of our business or our assets. Alternatively, we may seek to acquire other businesses or merge with them. If a change happens to our business, then the new owners may use your personal data in the same way as set out in this privacy policy.</li>
+          </ul>
+          <p>
+            We require all third parties to respect the security of your personal data and to treat it in accordance with the law. We do not allow our third-party service providers to use your personal data for their own purposes and only permit them to process your personal data for specified purposes and in accordance with our instructions.
+          </p>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold">5. Data Security</h2>
+          <p>
+            We have put in place appropriate security measures to prevent your personal data from being accidentally lost, used, or accessed in an unauthorized way, altered, or disclosed. In addition, we limit access to your personal data to those employees, agents, contractors, and other third parties who have a business need to know. They will only process your personal data on our instructions, and they are subject to a duty of confidentiality.
+          </p>
+          <p>
+            We have put in place procedures to deal with any suspected personal data breach and will notify you and any applicable regulator of a breach where we are legally required to do so.
+          </p>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold">6. Data Retention</h2>
+          <p>
+            We will only retain your personal data for as long as reasonably necessary to fulfill the purposes we collected it for, including for the purposes of satisfying any legal, regulatory, tax, accounting, or reporting requirements. We may retain your personal data for a longer period in the event of a complaint or if we reasonably believe there is a prospect of litigation in respect to our relationship with you.
+          </p>
+          <p>
+            To determine the appropriate retention period for personal data, we consider the amount, nature, and sensitivity of the personal data, the potential risk of harm from unauthorized use or disclosure of your personal data, the purposes for which we process your personal data and whether we can achieve those purposes through other means, and the applicable legal, regulatory, tax, accounting, or other requirements.
+          </p>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold">7. Your Legal Rights</h2>
+          <p>
+            Under certain circumstances, you have rights under data protection laws in relation to your personal data, including the right to:
+          </p>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Request access to your personal data.</li>
+            <li>Request correction of your personal data.</li>
+            <li>Request erasure of your personal data.</li>
+            <li>Object to processing of your personal data.</li>
+            <li>Request restriction of processing your personal data.</li>
+            <li>Request transfer of your personal data.</li>
+            <li>Right to withdraw consent.</li>
+          </ul>
+          <p>
+            You can exercise any of these rights by contacting us. You will not have to pay a fee to access your personal data (or to exercise any of the other rights). However, we may charge a reasonable fee if your request is clearly unfounded, repetitive, or excessive. Alternatively, we could refuse to comply with your request in these circumstances.
+          </p>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold">8. Cookie Policy</h2>
+          <p>
+            Our website uses cookies to distinguish you from other users of our website. This helps us to provide you with a good experience when you browse our website and also allows us to improve our site. By continuing to browse the site, you are agreeing to our use of cookies.
+          </p>
+          <p>
+            A cookie is a small file of letters and numbers that we store on your browser or the hard drive of your computer if you agree. Cookies contain information that is transferred to your computer's hard drive.
+          </p>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold">9. Changes to This Policy</h2>
+          <p>
+            We may update this privacy policy from time to time. When we change this privacy policy in a material way, we will update the "last updated" date at the top of this privacy policy. We may also notify you in other ways from time to time about the processing of your personal information.
+          </p>
+          <p>
+            Your continued use of our services after we publish or notify you about our changes to this privacy policy means that you are consenting to the updated privacy policy.
+          </p>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold">10. Contact Us</h2>
+          <p>
+            If you have any questions about this privacy policy or our privacy practices, please contact us at:
+          </p>
+          <Button asChild className="mt-2">
+            <Link to="/contact">Contact Page</Link>
+          </Button>
+        </section>
       </div>
     </div>
   );
