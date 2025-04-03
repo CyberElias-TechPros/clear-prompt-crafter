@@ -12,6 +12,7 @@ import AIServicesPage from "./pages/ai-services";
 import ConnectServicePage from "./pages/ai-services/connect/[serviceId]";
 import CommunityPage from "./pages/community";
 import PromptDetailPage from "./pages/community/prompt/[id]";
+import NewPromptPage from "./pages/prompts/new";
 import LeaderboardPage from "./pages/leaderboard";
 import ProfilePage from "./pages/profile";
 import SettingsPage from "./pages/settings"; 
@@ -67,6 +68,11 @@ const App = () => (
                 <PageLayout>
                   <SettingsPage />
                 </PageLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/prompts/new" element={
+              <ProtectedRoute>
+                <NewPromptPage />
               </ProtectedRoute>
             } />
             

@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -7,6 +7,10 @@ import { Button } from "@/components/ui/button";
 import { PlusIcon, ArrowRightIcon } from "lucide-react";
 import { toast } from "sonner";
 import PromptPreview from "./PromptPreview";
+
+interface StructuredPromptProps {
+  onPromptDataChange?: (sections: any[]) => void;
+}
 
 const sections = [
   {
@@ -65,7 +69,7 @@ const optionalSections = [
   }
 ];
 
-const StructuredPrompt = () => {
+const StructuredPrompt: React.FC<StructuredPromptProps> = ({ onPromptDataChange }) => {
   const [promptSections, setPromptSections] = useState<Record<string, string>>(
     Object.fromEntries(sections.map((section) => [section.id, ""]))
   );
@@ -114,6 +118,31 @@ const StructuredPrompt = () => {
     
     return prompt.trim();
   };
+
+  // Prepare sections data for parent component
+  useEffect(() => {
+    if (onPromptDataChange) {
+      const sectionsData = [
+        ...sections
+          .filter(section => promptSections[section.id]?.trim())
+          .map(section => ({
+            type: section.id,
+            content: promptSections[section.id]
+          })),
+        ...additionalSections
+          .filter(sectionId => promptSections[sectionId]?.trim())
+          .map(sectionId => {
+            const section = optionalSections.find(s => s.id === sectionId);
+            return {
+              type: sectionId,
+              content: promptSections[sectionId]
+            };
+          })
+      ];
+      
+      onPromptDataChange(sectionsData);
+    }
+  }, [promptSections, additionalSections, onPromptDataChange]);
 
   const allSectionsWithContent = sections.filter(
     (section) => promptSections[section.id].trim().length > 0

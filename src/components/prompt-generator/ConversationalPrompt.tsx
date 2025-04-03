@@ -7,6 +7,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { v4 as uuidv4 } from "uuid";
+import { toast } from "sonner";
 
 type Message = {
   id: string;
@@ -25,11 +27,16 @@ const initialMessages: Message[] = [
   },
 ];
 
-const ConversationalPrompt = () => {
+interface ConversationalPromptProps {
+  onPromptDataChange?: (sections: any[]) => void;
+}
+
+const ConversationalPrompt: React.FC<ConversationalPromptProps> = ({ onPromptDataChange }) => {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [finalPrompt, setFinalPrompt] = useState<string>("");
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -39,12 +46,24 @@ const ConversationalPrompt = () => {
     scrollToBottom();
   }, [messages]);
 
+  // Update parent component with the conversation data
+  useEffect(() => {
+    if (onPromptDataChange && finalPrompt) {
+      onPromptDataChange([
+        {
+          type: "conversation",
+          content: finalPrompt
+        }
+      ]);
+    }
+  }, [finalPrompt, onPromptDataChange]);
+
   const handleSend = () => {
     if (input.trim() === "") return;
 
     // Add user message
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: uuidv4(),
       role: "user",
       content: input,
       timestamp: new Date(),
@@ -58,13 +77,20 @@ const ConversationalPrompt = () => {
     setTimeout(() => {
       // Add assistant message
       const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: uuidv4(),
         role: "assistant",
         content: getAssistantResponse(input),
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, assistantMessage]);
       setIsGenerating(false);
+      
+      // Update the final prompt
+      const updatedConversation = [...messages, userMessage, assistantMessage]
+        .map(msg => `${msg.role.toUpperCase()}: ${msg.content}`)
+        .join("\n\n");
+      
+      setFinalPrompt(updatedConversation);
     }, 1000);
   };
 
@@ -98,8 +124,17 @@ const ConversationalPrompt = () => {
     }
   };
 
+  const copyConversation = () => {
+    const conversationText = messages
+      .map(msg => `${msg.role.toUpperCase()}: ${msg.content}`)
+      .join("\n\n");
+    
+    navigator.clipboard.writeText(conversationText);
+    toast.success("Conversation copied to clipboard");
+  };
+
   return (
-    <div className="flex flex-col h-[calc(100vh-200px)] p-4 md:p-6 overflow-hidden">
+    <div className="flex flex-col h-[calc(100vh-280px)] p-4 md:p-6 overflow-hidden">
       <div className="flex-1 overflow-hidden relative border rounded-md">
         <ScrollArea className="h-full px-4 py-6">
           <div className="space-y-6">
@@ -178,6 +213,17 @@ const ConversationalPrompt = () => {
           className="bg-purple-600 hover:bg-purple-700"
         >
           <ArrowRightIcon className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="mt-4 flex justify-end">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={copyConversation}
+          disabled={messages.length <= 1}
+        >
+          Save Conversation
         </Button>
       </div>
     </div>

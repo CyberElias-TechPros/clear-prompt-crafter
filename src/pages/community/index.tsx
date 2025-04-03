@@ -1,9 +1,11 @@
 
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 import {
   Card,
@@ -47,6 +49,7 @@ import {
   ChevronDown,
   ListFilter,
   ArrowUpDown,
+  PlusIcon,
 } from "lucide-react";
 
 type PromptItem = {
@@ -62,6 +65,7 @@ type PromptItem = {
 };
 
 export default function CommunityPage() {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"recent" | "popular">("recent");
 
@@ -160,16 +164,25 @@ export default function CommunityPage() {
 
     if (!items || items.length === 0) {
       return (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
+        <div className="flex flex-col items-center justify-center py-12 text-center space-y-4">
           <p className="text-xl font-semibold">No {type}s found</p>
-          <p className="mt-2 text-muted-foreground">
+          <p className="text-muted-foreground">
             {searchTerm
               ? `No ${type}s match your search criteria.`
               : `There are no public ${type}s available yet.`}
           </p>
           {searchTerm && (
-            <Button onClick={() => setSearchTerm("")} variant="outline" className="mt-4">
+            <Button onClick={() => setSearchTerm("")} variant="outline" className="mt-2">
               Clear Search
+            </Button>
+          )}
+          
+          {user && (
+            <Button asChild className="mt-2 bg-purple-600 hover:bg-purple-700">
+              <Link to="/prompts/new">
+                <PlusIcon className="mr-2 h-4 w-4" />
+                Create a New {type === "prompt" ? "Prompt" : "Template"}
+              </Link>
             </Button>
           )}
         </div>
@@ -238,9 +251,18 @@ export default function CommunityPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button asChild>
-              <Link to="/prompts/new">Create Prompt</Link>
-            </Button>
+            {user ? (
+              <Button asChild className="bg-purple-600 hover:bg-purple-700">
+                <Link to="/prompts/new">
+                  <PlusIcon className="mr-2 h-4 w-4" />
+                  Create Prompt
+                </Link>
+              </Button>
+            ) : (
+              <Button asChild>
+                <Link to="/auth">Sign in to Create</Link>
+              </Button>
+            )}
           </div>
         </div>
 

@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+
+interface MetaPromptProps {
+  onPromptDataChange?: (sections: any[]) => void;
+}
 
 const clearFrameworkCriteria = [
   {
@@ -46,12 +50,28 @@ const clearFrameworkCriteria = [
   },
 ];
 
-const MetaPrompt = () => {
+const MetaPrompt: React.FC<MetaPromptProps> = ({ onPromptDataChange }) => {
   const [promptDraft, setPromptDraft] = useState("");
   const [analysis, setAnalysis] = useState<string>("");
   const [improvedPrompt, setImprovedPrompt] = useState<string>("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [activeTab, setActiveTab] = useState("prompt");
+
+  // Update parent component with the meta prompt data
+  useEffect(() => {
+    if (onPromptDataChange && improvedPrompt) {
+      onPromptDataChange([
+        {
+          type: "meta_prompt",
+          content: improvedPrompt
+        },
+        {
+          type: "analysis",
+          content: analysis
+        }
+      ]);
+    }
+  }, [improvedPrompt, analysis, onPromptDataChange]);
 
   const analyzePrompt = () => {
     if (promptDraft.trim() === "") return;
