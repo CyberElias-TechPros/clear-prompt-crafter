@@ -39,11 +39,11 @@ export function SettingsForm({ initialSettings, isLoading }: SettingsFormProps) 
 
   const updateSettingsMutation = useMutation({
     mutationFn: async (settings: Partial<UserSettings>) => {
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/update-user-settings`, {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-user-settings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabase.auth.getSession().then(({ data }) => data.session?.access_token)}`,
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
         },
         body: JSON.stringify({ settings }),
       });
