@@ -38,47 +38,36 @@ serve(async (req) => {
       )
     }
 
-    const { service_name, api_key } = await req.json()
+    const { settings } = await req.json()
 
-    if (!service_name || !api_key) {
+    if (!settings) {
       return new Response(
-        JSON.stringify({ error: 'Missing required fields' }),
+        JSON.stringify({ error: 'Missing settings data' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Store the API key in encrypted form using vault
-    const { data: encryptionData, error: encryptionError } = await supabaseClient
-      .rpc('encrypt_api_key', {
-        key_value: api_key
-      })
-
-    if (encryptionError) {
-      console.error('Error encrypting API key:', encryptionError);
-      throw encryptionError;
+    // Add user_id to settings object
+    const settingsWithUserId = {
+      ...settings,
+      user_id: session.user.id,
     }
 
-    // Store the API key reference and service info
+    // Update user settings
     const { data, error } = await supabaseClient
-      .from('user_ai_services')
-      .upsert(
-        {
-          user_id: session.user.id,
-          service_name,
-          api_key_id: encryptionData,
-          is_active: true,
-        },
-        { onConflict: 'user_id,service_name' }
-      )
+      .from('user_settings')
+      .upsert(settingsWithUserId, { onConflict: 'user_id' })
+      .select()
+      .single()
 
     if (error) throw error
 
     return new Response(
-      JSON.stringify({ success: true }),
+      JSON.stringify({ success: true, data }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
-    console.error('Error storing API key:', error);
+    console.error('Error updating user settings:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

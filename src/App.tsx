@@ -14,7 +14,7 @@ import CommunityPage from "./pages/community";
 import PromptDetailPage from "./pages/community/prompt/[id]";
 import LeaderboardPage from "./pages/leaderboard";
 import ProfilePage from "./pages/profile";
-import SettingsPage from "./pages/settings";
+import SettingsPage from "./pages/settings"; 
 import TermsPage from "./pages/terms";
 import PrivacyPage from "./pages/privacy";
 import ContactPage from "./pages/contact";
