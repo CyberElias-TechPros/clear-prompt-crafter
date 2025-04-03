@@ -47,13 +47,25 @@ serve(async (req) => {
       )
     }
 
-    // Store the API key securely in Supabase
+    // Store the API key in encrypted form using vault
+    const { data: encryptionData, error: encryptionError } = await supabaseClient
+      .rpc('encrypt_api_key', {
+        key_value: api_key
+      })
+
+    if (encryptionError) {
+      console.error('Error encrypting API key:', encryptionError);
+      throw encryptionError;
+    }
+
+    // Store the API key reference and service info
     const { data, error } = await supabaseClient
       .from('user_ai_services')
       .upsert(
         {
           user_id: session.user.id,
           service_name,
+          api_key_id: encryptionData,
           is_active: true,
         },
         { onConflict: 'user_id,service_name' }

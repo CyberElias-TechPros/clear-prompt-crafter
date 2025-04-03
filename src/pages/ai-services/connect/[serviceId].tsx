@@ -1,14 +1,14 @@
 
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ChevronLeft, ExternalLink } from "lucide-react";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "@/hooks/use-toast";
+import { AlertCircle, ArrowLeft, ChevronLeft, ExternalLink } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SupportedAIService } from "@/lib/types";
 
 const supportedServices: SupportedAIService[] = [
@@ -16,7 +16,7 @@ const supportedServices: SupportedAIService[] = [
     id: "openai",
     name: "OpenAI",
     logo: "https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg",
-    description: "Connect with OpenAI's models like GPT-4 and DALL-E.",
+    description: "Connect with OpenAI's models like GPT-4o and DALL-E.",
     authUrl: "https://platform.openai.com/account/api-keys",
     apiKeyTitle: "API Key",
   },
@@ -38,73 +38,125 @@ const supportedServices: SupportedAIService[] = [
   },
 ];
 
-const ConnectServicePage = () => {
+export default function ConnectServicePage() {
   const { serviceId } = useParams<{ serviceId: string }>();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [apiKey, setApiKey] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
   const [service, setService] = useState<SupportedAIService | null>(null);
-  const { toast } = useToast();
-  const navigate = useNavigate();
+  const [error, setError] = useState("");
 
+  // Find the service based on serviceId
   useEffect(() => {
-    if (serviceId) {
-      const foundService = supportedServices.find(s => s.id === serviceId);
-      if (foundService) {
-        setService(foundService);
-      } else {
-        navigate("/ai-services");
-        toast({
-          title: "Service not found",
-          description: "The requested AI service is not supported.",
-          variant: "destructive",
-        });
-      }
+    const foundService = supportedServices.find(s => s.id === serviceId);
+    if (foundService) {
+      setService(foundService);
+    } else {
+      setError("Invalid service");
     }
-  }, [serviceId, navigate, toast]);
+  }, [serviceId]);
 
-  const handleConnectService = async (e: React.FormEvent) => {
+  // Check if this service is already connected
+  useEffect(() => {
+    const checkConnection = async () => {
+      if (!user || !service) return;
+
+      try {
+        const { data, error } = await supabase
+          .from("user_ai_services")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("service_name", service.id)
+          .single();
+
+        if (error && error.code !== "PGRST116") {
+          console.error("Error checking connection:", error);
+          throw error;
+        }
+
+        setIsConnected(!!data);
+      } catch (err) {
+        console.error("Error checking service connection:", err);
+      }
+    };
+
+    checkConnection();
+  }, [user, service]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user || !service) return;
-    
-    setIsLoading(true);
-    
+    if (!apiKey.trim()) {
+      setError("API key is required");
+      return;
+    }
+
+    if (!service) {
+      setError("Invalid service");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError("");
+
     try {
-      // Store the API key securely in Supabase Edge Function
-      // Here we're just storing a record that the service is connected
-      const { data, error } = await supabase
-        .from("user_ai_services")
-        .upsert(
-          {
-            user_id: user.id,
-            service_name: service.id,
-            is_active: true,
-          },
-          { onConflict: "user_id,service_name" }
-        );
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Service connected",
-        description: `${service.name} has been successfully connected.`,
+      // Call the Supabase Edge Function to securely store the API key
+      const { data, error } = await supabase.functions.invoke("store-api-key", {
+        body: {
+          service_name: service.id,
+          api_key: apiKey,
+        },
       });
-      
+
+      if (error) throw error;
+
+      toast({
+        title: `${service.name} connected successfully!`,
+        description: "Your API key has been securely stored.",
+      });
+
+      setIsConnected(true);
       navigate("/ai-services");
     } catch (error: any) {
+      console.error("Error connecting service:", error);
+      setError(error.message || "Failed to connect service. Please try again.");
       toast({
-        title: "Error connecting service",
-        description: error.message,
+        title: "Connection failed",
+        description: error.message || "Failed to connect service. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
+      setApiKey("");
     }
   };
 
   if (!service) {
-    return null;
+    return (
+      <div className="container mx-auto py-8">
+        <div className="flex items-center mb-6">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="mr-2"
+            onClick={() => navigate("/ai-services")}
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-2xl font-bold">Connect AI Service</h1>
+        </div>
+        
+        <Alert variant="destructive">
+          <AlertCircle className="h-5 w-5" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>
+            {error || "The requested service was not found."}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
   }
 
   return (
@@ -121,57 +173,73 @@ const ConnectServicePage = () => {
         <h1 className="text-2xl font-bold">Connect {service.name}</h1>
       </div>
 
-      <Card className="max-w-md mx-auto">
-        <CardHeader>
-          <div className="flex items-center gap-3 mb-2">
-            <img
-              src={service.logo}
-              alt={`${service.name} logo`}
-              className="w-10 h-10 rounded-full object-cover"
+      <div className="max-w-xl mx-auto">
+        <Card>
+          <CardHeader className="flex flex-row items-center gap-4">
+            <img 
+              src={service.logo} 
+              alt={`${service.name} logo`} 
+              className="w-12 h-12 rounded-full object-cover"
             />
-            <CardTitle>{service.name}</CardTitle>
-          </div>
-          <CardDescription>
-            {service.description}
-          </CardDescription>
-        </CardHeader>
-        <form onSubmit={handleConnectService}>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="apiKey">{service.apiKeyTitle}</Label>
-              <Input
-                id="apiKey"
-                type="password"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="sk-..."
-                required
-              />
-              <p className="text-xs text-muted-foreground">
-                Your API key is stored securely and never shared.
-              </p>
-            </div>
             <div>
-              <a
-                href={service.authUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm flex items-center text-blue-600 hover:underline"
-              >
-                Get your {service.name} API key
-                <ExternalLink className="ml-1 h-3 w-3" />
-              </a>
+              <CardTitle>{service.name}</CardTitle>
+              <CardDescription>{service.description}</CardDescription>
             </div>
+          </CardHeader>
+          
+          <CardContent>
+            <form onSubmit={handleSubmit}>
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="apiKey" className="block text-sm font-medium mb-1">
+                    {service.apiKeyTitle}
+                  </label>
+                  <Input
+                    id="apiKey"
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder={`Enter your ${service.name} ${service.apiKeyTitle}`}
+                    className="w-full"
+                    required
+                  />
+                </div>
+                
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+                
+                <div className="flex justify-between items-center">
+                  <a 
+                    href={service.authUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary flex items-center"
+                  >
+                    Get your API key <ExternalLink className="ml-1 h-3 w-3" />
+                  </a>
+                  
+                  <Button 
+                    type="submit" 
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "Connecting..." : isConnected ? "Update Connection" : "Connect"}
+                  </Button>
+                </div>
+              </div>
+            </form>
           </CardContent>
-          <CardFooter>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Connecting..." : "Connect Service"}
-            </Button>
+          
+          <CardFooter className="bg-muted/40 flex flex-col items-start text-sm text-muted-foreground">
+            <p className="mb-2">Your API key will be securely stored and encrypted.</p>
+            <p>Note: This will enable integration with {service.name} for prompt generation and AI-assisted features.</p>
           </CardFooter>
-        </form>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
-};
-
-export default ConnectServicePage;
+}
