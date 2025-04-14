@@ -23,8 +23,13 @@ import {
   Menu,
   PenTool,
   User,
+  LayoutDashboard,
+  UserCog,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { AdBanner } from "@/components/ads/AdBanner";
 
 interface PageLayoutProps {
   children: React.ReactNode;
@@ -35,6 +40,32 @@ export default function PageLayout({ children }: PageLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const [isAdmin, setIsAdmin] = React.useState(false);
+
+  // Check if the user is an admin
+  const { data: userRole } = useQuery({
+    queryKey: ["user-role", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      
+      const { data, error } = await supabase
+        .from("user_profiles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+      
+      if (error) return null;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  // Set admin status when user role data is available
+  React.useEffect(() => {
+    if (userRole) {
+      setIsAdmin(userRole.role === "admin");
+    }
+  }, [userRole]);
 
   const handleSignOut = async () => {
     try {
@@ -43,7 +74,7 @@ export default function PageLayout({ children }: PageLayoutProps) {
         title: "Signed out successfully",
         description: "You have been signed out of your account.",
       });
-      navigate("/auth");
+      navigate("/");
     } catch (error) {
       console.error("Error signing out:", error);
       toast({
@@ -55,10 +86,15 @@ export default function PageLayout({ children }: PageLayoutProps) {
   };
 
   const navItems = [
-    { title: "Home", path: "/", icon: <Home className="w-5 h-5" /> },
+    { title: "Dashboard", path: "/dashboard", icon: <LayoutDashboard className="w-5 h-5" /> },
     { title: "AI Services", path: "/ai-services", icon: <Sparkles className="w-5 h-5" /> },
     { title: "Community", path: "/community", icon: <Users className="w-5 h-5" /> },
     { title: "Leaderboard", path: "/leaderboard", icon: <Award className="w-5 h-5" /> },
+  ];
+
+  // Add admin items if the user is an admin
+  const adminItems = [
+    { title: "Ad Manager", path: "/admin/ads", icon: <UserCog className="w-5 h-5" /> },
   ];
 
   return (
@@ -73,6 +109,16 @@ export default function PageLayout({ children }: PageLayoutProps) {
 
             <nav className="hidden md:flex md:gap-6">
               {navItems.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`flex items-center gap-1 text-sm font-medium transition-colors hover:text-primary
+                    ${location.pathname === item.path ? "text-primary" : "text-muted-foreground"}`}
+                >
+                  {item.title}
+                </Link>
+              ))}
+              {isAdmin && adminItems.map((item) => (
                 <Link
                   key={item.path}
                   to={item.path}
@@ -118,6 +164,20 @@ export default function PageLayout({ children }: PageLayoutProps) {
                       Settings
                     </Link>
                   </DropdownMenuItem>
+                  {isAdmin && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel>Admin</DropdownMenuLabel>
+                      {adminItems.map((item) => (
+                        <DropdownMenuItem key={item.path} asChild>
+                          <Link to={item.path} className="flex items-center gap-2 cursor-pointer">
+                            {item.icon}
+                            {item.title}
+                          </Link>
+                        </DropdownMenuItem>
+                      ))}
+                    </>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
                     className="flex items-center gap-2 cursor-pointer"
@@ -162,6 +222,18 @@ export default function PageLayout({ children }: PageLayoutProps) {
                   {item.title}
                 </Link>
               ))}
+              {isAdmin && adminItems.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent
+                    ${location.pathname === item.path ? "bg-accent" : ""}`}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {item.icon}
+                  {item.title}
+                </Link>
+              ))}
             </nav>
           </div>
         )}
@@ -170,6 +242,8 @@ export default function PageLayout({ children }: PageLayoutProps) {
       <main className="flex-1">
         {children}
       </main>
+      
+      <AdBanner size="small" position="bottom" className="mx-auto max-w-4xl my-4" />
       
       <footer className="py-6 border-t bg-background/80 backdrop-blur-sm">
         <div className="container flex flex-col items-center justify-between gap-4 px-4 text-center md:flex-row md:text-left">

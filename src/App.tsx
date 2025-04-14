@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import PageLayout from "./components/layout/PageLayout";
 import Index from "./pages/Index";
+import LandingPage from "./pages/landing";
 import AuthPage from "./pages/auth";
 import AIServicesPage from "./pages/ai-services";
 import ConnectServicePage from "./pages/ai-services/connect/[serviceId]";
@@ -19,6 +20,7 @@ import SettingsPage from "./pages/settings";
 import TermsPage from "./pages/terms";
 import PrivacyPage from "./pages/privacy";
 import ContactPage from "./pages/contact";
+import AdManagerPage from "./pages/admin/ads";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -32,10 +34,13 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            {/* Public landing page */}
+            <Route path="/" element={<LandingPage />} />
+            
             <Route path="/auth" element={<AuthPage />} />
             
             {/* Protected routes with PageLayout */}
-            <Route path="/" element={
+            <Route path="/dashboard" element={
               <ProtectedRoute>
                 <PageLayout>
                   <Index />
@@ -73,6 +78,13 @@ const App = () => (
             <Route path="/prompts/new" element={
               <ProtectedRoute>
                 <NewPromptPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/ads" element={
+              <ProtectedRoute>
+                <PageLayout>
+                  <AdManagerPage />
+                </PageLayout>
               </ProtectedRoute>
             } />
             
