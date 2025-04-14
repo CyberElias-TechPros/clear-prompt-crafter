@@ -1,9 +1,8 @@
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import PromptGuidelineCard from "@/components/prompt-guidelines/PromptGuidelineCard";
-import { AdBanner } from "@/components/ads/AdBanner";
+import { AdBanner } from "@/components/ads";
 
 const debuggingTips = [
   "Always provide specific, detailed descriptions of what you want to achieve",

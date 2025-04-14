@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -29,7 +28,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import { AdBanner } from "@/components/ads/AdBanner";
+import { AdBanner } from "@/components/ads";
 import { AIService, SupportedAIService } from "@/lib/types";
 import {
   Check,

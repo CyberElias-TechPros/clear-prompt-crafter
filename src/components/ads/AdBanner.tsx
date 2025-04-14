@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface AdBannerProps {
   size: "small" | "medium" | "large";
-  position: "top" | "side" | "inline";
+  position: "top" | "side" | "inline" | "bottom";
   className?: string;
 }
 
@@ -16,9 +16,12 @@ interface Ad {
   id: string;
   title: string;
   content: string;
-  image_url?: string;
+  image_url?: string | null;
   link_url: string;
+  ad_size: string;
+  ad_position: string;
   is_active: boolean;
+  created_at: string;
 }
 
 const AdBanner: React.FC<AdBannerProps> = ({ size, position, className = "" }) => {
@@ -26,14 +29,13 @@ const AdBanner: React.FC<AdBannerProps> = ({ size, position, className = "" }) =
   const [dismissed, setDismissed] = useState(false);
   const { user } = useAuth();
 
-  // Check if the user has a pro subscription (this would be implemented in a real app)
+  // Check if the user has a pro subscription
   const [isProUser, setIsProUser] = useState(false);
 
   useEffect(() => {
     const checkUserStatus = async () => {
       if (user) {
-        // In a real app, you would check the user's subscription status
-        // This is just a placeholder implementation
+        // Check the user's premium status
         const { data, error } = await supabase
           .from('user_settings')
           .select('is_premium')
@@ -55,8 +57,7 @@ const AdBanner: React.FC<AdBannerProps> = ({ size, position, className = "" }) =
       if (isProUser) return;
       
       try {
-        // In a real implementation, you would fetch from your ad database
-        // This is a mock implementation
+        // Fetch a random ad from the database
         const { data, error } = await supabase
           .from('ads')
           .select('*')
@@ -69,7 +70,7 @@ const AdBanner: React.FC<AdBannerProps> = ({ size, position, className = "" }) =
         
         if (data && data.length > 0) {
           // Pick a random ad from the results
-          const randomAd = data[Math.floor(Math.random() * data.length)];
+          const randomAd = data[Math.floor(Math.random() * data.length)] as Ad;
           setAd(randomAd);
         }
       } catch (error) {
@@ -82,7 +83,10 @@ const AdBanner: React.FC<AdBannerProps> = ({ size, position, className = "" }) =
           content: 'Remove ads and get unlimited prompts with our Pro plan!',
           image_url: 'https://via.placeholder.com/300x200?text=Prompt-Gineer+Pro',
           link_url: '/auth',
-          is_active: true
+          ad_size: size,
+          ad_position: position,
+          is_active: true,
+          created_at: new Date().toISOString()
         });
       }
     };

@@ -29,7 +29,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { AdBanner } from "@/components/ads/AdBanner";
+import { AdBanner } from "@/components/ads";
 
 interface PageLayoutProps {
   children: React.ReactNode;
@@ -49,9 +49,9 @@ export default function PageLayout({ children }: PageLayoutProps) {
       if (!user) return null;
       
       const { data, error } = await supabase
-        .from("user_profiles")
+        .from("profiles")
         .select("role")
-        .eq("user_id", user.id)
+        .eq("id", user.id)
         .single();
       
       if (error) return null;

@@ -1,2 +1,4 @@
 
-export { default as AdBanner } from "./AdBanner";
+import AdBanner from "./AdBanner";
+
+export { AdBanner };

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,7 +61,7 @@ interface Ad {
   image_url: string | null;
   link_url: string;
   ad_size: "small" | "medium" | "large";
-  ad_position: "top" | "side" | "inline";
+  ad_position: "top" | "side" | "inline" | "bottom";
   is_active: boolean;
   created_at: string;
 }
@@ -75,7 +74,7 @@ const adSchema = z.object({
   ad_size: z.enum(["small", "medium", "large"], { 
     required_error: "Please select an ad size" 
   }),
-  ad_position: z.enum(["top", "side", "inline"], { 
+  ad_position: z.enum(["top", "side", "inline", "bottom"], { 
     required_error: "Please select an ad position" 
   }),
   is_active: z.boolean().default(true),
@@ -332,6 +331,7 @@ const AdManagerPage = () => {
                             <SelectItem value="top">Top</SelectItem>
                             <SelectItem value="side">Side</SelectItem>
                             <SelectItem value="inline">Inline</SelectItem>
+                            <SelectItem value="bottom">Bottom</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -494,6 +494,7 @@ const AdManagerPage = () => {
                             <SelectItem value="top">Top</SelectItem>
                             <SelectItem value="side">Side</SelectItem>
                             <SelectItem value="inline">Inline</SelectItem>
+                            <SelectItem value="bottom">Bottom</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
