@@ -9,6 +9,7 @@ import Header from "@/components/prompt-generator/Header";
 import StructuredPrompt from "@/components/prompt-generator/StructuredPrompt";
 import ConversationalPrompt from "@/components/prompt-generator/ConversationalPrompt";
 import MetaPrompt from "@/components/prompt-generator/MetaPrompt";
+import PromptGuidelineCard from "@/components/prompt-guidelines/PromptGuidelineCard";
 import { UserSettings } from "@/lib/types";
 import {
   Dialog,
@@ -21,15 +22,69 @@ import {
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { HelpCircle } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("structured");
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showLearningDialog, setShowLearningDialog] = useState(false);
+  const [showGuidelines, setShowGuidelines] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  
+  const guidelines = {
+    debuggingBestPractices: {
+      title: "Debugging Best Practices",
+      description: "Tips for effective debugging with AI",
+      content: [
+        "Always provide specific, detailed descriptions of what you want to achieve",
+        "Break down complex problems into smaller, manageable steps",
+        "Use clear, unambiguous language in your prompts",
+        "Include relevant context and constraints",
+        "Specify the desired outcome explicitly"
+      ],
+      variant: "debug"
+    },
+    promptEngineeringGuidelines: {
+      title: "Prompt Engineering Guidelines",
+      description: "Best practices for writing effective prompts",
+      content: [
+        "Start with a clear context setting",
+        "Define tasks with measurable outcomes",
+        "Include specific guidelines and constraints",
+        "Consider error handling and edge cases",
+        "Review and iterate on your prompts"
+      ],
+      variant: "tip"
+    },
+    debuggingWorkflows: {
+      title: "Debugging Workflows",
+      description: "Step-by-step approaches to solve problems",
+      content: [
+        "When something doesn't work, add more specificity to your request",
+        "Use the console logs to understand how data is flowing through your application",
+        "Isolate the problem area before attempting fixes",
+        "For complex bugs, create a minimal reproducible example",
+        "Add 'console.log' statements strategically to track the execution flow"
+      ],
+      variant: "warning"
+    },
+    promptRefinementTechniques: {
+      title: "Prompt Refinement Techniques",
+      description: "How to iterate and improve your prompts",
+      content: [
+        "After initial results, refine prompts by adding more specific constraints",
+        "Use the CLEAR framework: Concise, Logical, Explicit, Adaptive, Reflective",
+        "For code generation, specify exact function signatures and return types",
+        "Include examples of expected inputs and outputs for better understanding",
+        "When refactoring, explicitly mention what should NOT change"
+      ],
+      variant: "success"
+    }
+  };
 
   useEffect(() => {
     const fetchUserSettings = async () => {
@@ -98,7 +153,52 @@ const Index = () => {
   return (
     <MainLayout>
       <div className="min-h-screen flex flex-col animate-in fade-in duration-500">
-        <Header activeTab={activeTab} setActiveTab={setActiveTab} />
+        <div className="container px-4 py-2">
+          <div className="flex justify-between items-center mb-2">
+            <Header activeTab={activeTab} setActiveTab={setActiveTab} />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowGuidelines(!showGuidelines)}
+              className="flex items-center gap-1"
+            >
+              <HelpCircle className="h-4 w-4" />
+              {showGuidelines ? "Hide Guidelines" : "Prompt Guidelines"}
+            </Button>
+          </div>
+
+          <Collapsible open={showGuidelines} onOpenChange={setShowGuidelines} className="mb-4">
+            <CollapsibleContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2 pb-6">
+                <PromptGuidelineCard 
+                  title={guidelines.debuggingBestPractices.title}
+                  description={guidelines.debuggingBestPractices.description}
+                  content={guidelines.debuggingBestPractices.content}
+                  variant="debug"
+                />
+                <PromptGuidelineCard 
+                  title={guidelines.promptEngineeringGuidelines.title}
+                  description={guidelines.promptEngineeringGuidelines.description}
+                  content={guidelines.promptEngineeringGuidelines.content}
+                  variant="tip"
+                />
+                <PromptGuidelineCard 
+                  title={guidelines.debuggingWorkflows.title}
+                  description={guidelines.debuggingWorkflows.description}
+                  content={guidelines.debuggingWorkflows.content}
+                  variant="warning"
+                />
+                <PromptGuidelineCard 
+                  title={guidelines.promptRefinementTechniques.title}
+                  description={guidelines.promptRefinementTechniques.description}
+                  content={guidelines.promptRefinementTechniques.content}
+                  variant="success"
+                />
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        </div>
+
         <main className="flex-1">
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
             {activeTab === "structured" && <StructuredPrompt />}

@@ -50,7 +50,9 @@ import {
   ListFilter,
   ArrowUpDown,
   PlusIcon,
+  HelpCircle,
 } from "lucide-react";
+import PromptGuidelineCard from "@/components/prompt-guidelines/PromptGuidelineCard";
 
 type PromptItem = {
   id: string;
@@ -68,6 +70,58 @@ export default function CommunityPage() {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"recent" | "popular">("recent");
+  const [showGuidelines, setShowGuidelines] = useState(false);
+  
+  const guidelines = {
+    debuggingBestPractices: {
+      title: "Debugging Best Practices",
+      description: "Tips for effective debugging with AI",
+      content: [
+        "Always provide specific, detailed descriptions of what you want to achieve",
+        "Break down complex problems into smaller, manageable steps",
+        "Use clear, unambiguous language in your prompts",
+        "Include relevant context and constraints",
+        "Specify the desired outcome explicitly"
+      ],
+      variant: "debug"
+    },
+    promptEngineeringGuidelines: {
+      title: "Prompt Engineering Guidelines",
+      description: "Best practices for writing effective prompts",
+      content: [
+        "Start with a clear context setting",
+        "Define tasks with measurable outcomes",
+        "Include specific guidelines and constraints",
+        "Consider error handling and edge cases",
+        "Review and iterate on your prompts"
+      ],
+      variant: "tip"
+    },
+    debuggingWorkflows: {
+      title: "Debugging Workflows",
+      description: "Step-by-step approaches to solve problems",
+      content: [
+        "When something doesn't work, add more specificity to your request",
+        "Use the console logs to understand how data is flowing through your application",
+        "Isolate the problem area before attempting fixes",
+        "For complex bugs, create a minimal reproducible example",
+        "Add 'console.log' statements strategically to track the execution flow"
+      ],
+      variant: "warning"
+    },
+    promptRefinementTechniques: {
+      title: "Prompt Refinement Techniques",
+      description: "How to iterate and improve your prompts",
+      content: [
+        "After initial results, refine prompts by adding more specific constraints",
+        "Use the CLEAR framework: Concise, Logical, Explicit, Adaptive, Reflective",
+        "For code generation, specify exact function signatures and return types",
+        "Include examples of expected inputs and outputs for better understanding",
+        "When refactoring, explicitly mention what should NOT change"
+      ],
+      variant: "success"
+    }
+  };
 
   // Fetch prompts from Supabase
   const {
@@ -251,6 +305,10 @@ export default function CommunityPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setShowGuidelines(!showGuidelines)}>
+              <HelpCircle className="h-4 w-4 mr-2" />
+              {showGuidelines ? "Hide Guidelines" : "Show Guidelines"}
+            </Button>
             {user ? (
               <Button asChild className="bg-purple-600 hover:bg-purple-700">
                 <Link to="/prompts/new">
@@ -265,6 +323,35 @@ export default function CommunityPage() {
             )}
           </div>
         </div>
+
+        {showGuidelines && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
+            <PromptGuidelineCard 
+              title={guidelines.debuggingBestPractices.title}
+              description={guidelines.debuggingBestPractices.description}
+              content={guidelines.debuggingBestPractices.content}
+              variant="debug"
+            />
+            <PromptGuidelineCard 
+              title={guidelines.promptEngineeringGuidelines.title}
+              description={guidelines.promptEngineeringGuidelines.description}
+              content={guidelines.promptEngineeringGuidelines.content}
+              variant="tip"
+            />
+            <PromptGuidelineCard 
+              title={guidelines.debuggingWorkflows.title}
+              description={guidelines.debuggingWorkflows.description}
+              content={guidelines.debuggingWorkflows.content}
+              variant="warning"
+            />
+            <PromptGuidelineCard 
+              title={guidelines.promptRefinementTechniques.title}
+              description={guidelines.promptRefinementTechniques.description}
+              content={guidelines.promptRefinementTechniques.content}
+              variant="success"
+            />
+          </div>
+        )}
 
         <div className="flex flex-col gap-4 sm:flex-row">
           <form
