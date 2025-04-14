@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,7 +45,6 @@ const ConversationalPrompt: React.FC<ConversationalPromptProps> = ({ onPromptDat
     scrollToBottom();
   }, [messages]);
 
-  // Update parent component with the conversation data
   useEffect(() => {
     if (onPromptDataChange && finalPrompt) {
       onPromptDataChange([
@@ -61,7 +59,6 @@ const ConversationalPrompt: React.FC<ConversationalPromptProps> = ({ onPromptDat
   const handleSend = () => {
     if (input.trim() === "") return;
 
-    // Add user message
     const userMessage: Message = {
       id: uuidv4(),
       role: "user",
@@ -73,9 +70,7 @@ const ConversationalPrompt: React.FC<ConversationalPromptProps> = ({ onPromptDat
     setInput("");
     setIsGenerating(true);
 
-    // Simulate AI response
     setTimeout(() => {
-      // Add assistant message
       const assistantMessage: Message = {
         id: uuidv4(),
         role: "assistant",
@@ -85,7 +80,6 @@ const ConversationalPrompt: React.FC<ConversationalPromptProps> = ({ onPromptDat
       setMessages((prev) => [...prev, assistantMessage]);
       setIsGenerating(false);
       
-      // Update the final prompt
       const updatedConversation = [...messages, userMessage, assistantMessage]
         .map(msg => `${msg.role.toUpperCase()}: ${msg.content}`)
         .join("\n\n");
@@ -113,7 +107,6 @@ const ConversationalPrompt: React.FC<ConversationalPromptProps> = ({ onPromptDat
       return "Here's a sample structured prompt:\n\n**Context:** You are a front-end developer working on a React e-commerce website using Tailwind CSS.\n\n**Task:** Create a product card component that displays an image, title, price, and 'Add to Cart' button.\n\n**Guidelines:** Use Tailwind for styling, keep the design minimalist and modern, ensure it's fully responsive.\n\n**Constraints:** Don't use any third-party UI libraries, ensure accessibility compliance.\n\nWould you like to use this as a template?";
     }
     
-    // Default response for other inputs
     return "I understand you're looking for assistance with prompt engineering. Could you provide more details about your project? What are you trying to build, what technologies are you using, and what specific guidance do you need?";
   };
 

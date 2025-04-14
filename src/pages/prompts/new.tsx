@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
@@ -29,12 +28,10 @@ export default function NewPromptPage() {
   const [isPublic, setIsPublic] = useState(false);
   const [promptSections, setPromptSections] = useState<any[]>([]);
 
-  // Mutation for saving a new prompt
   const savePromptMutation = useMutation({
     mutationFn: async (data: { title: string; description: string; isPublic: boolean; sections: any[] }) => {
       if (!user) throw new Error("You must be logged in to save a prompt");
       
-      // Insert the prompt
       const { data: prompt, error: promptError } = await supabase
         .from("prompts")
         .insert([
@@ -50,7 +47,6 @@ export default function NewPromptPage() {
       
       if (promptError) throw promptError;
       
-      // Insert the sections
       const sectionsWithPromptId = data.sections.map((section, index) => ({
         prompt_id: prompt.id,
         section_type: section.type,
@@ -159,7 +155,7 @@ export default function NewPromptPage() {
           )}
           
           {activeTab === "conversational" && (
-            <ConversationalPrompt />
+            <ConversationalPrompt onPromptDataChange={handlePromptDataChange} />
           )}
           
           {activeTab === "meta" && (
