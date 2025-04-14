@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { Ad, UserSettings } from "@/lib/types";
 
 interface AdBannerProps {
   size: "small" | "medium" | "large";
@@ -12,35 +13,20 @@ interface AdBannerProps {
   className?: string;
 }
 
-interface Ad {
-  id: string;
-  title: string;
-  content: string;
-  image_url?: string | null;
-  link_url: string;
-  ad_size: string;
-  ad_position: string;
-  is_active: boolean;
-  created_at: string;
-}
-
 const AdBanner: React.FC<AdBannerProps> = ({ size, position, className = "" }) => {
   const [ad, setAd] = useState<Ad | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const { user } = useAuth();
-
-  // Check if the user has a pro subscription
   const [isProUser, setIsProUser] = useState(false);
 
   useEffect(() => {
     const checkUserStatus = async () => {
       if (user) {
-        // Check the user's premium status
         const { data, error } = await supabase
           .from('user_settings')
           .select('is_premium')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
         
         if (!error && data) {
           setIsProUser(data.is_premium || false);
@@ -57,7 +43,6 @@ const AdBanner: React.FC<AdBannerProps> = ({ size, position, className = "" }) =
       if (isProUser) return;
       
       try {
-        // Fetch a random ad from the database
         const { data, error } = await supabase
           .from('ads')
           .select('*')
@@ -69,7 +54,6 @@ const AdBanner: React.FC<AdBannerProps> = ({ size, position, className = "" }) =
         if (error) throw error;
         
         if (data && data.length > 0) {
-          // Pick a random ad from the results
           const randomAd = data[Math.floor(Math.random() * data.length)] as Ad;
           setAd(randomAd);
         }

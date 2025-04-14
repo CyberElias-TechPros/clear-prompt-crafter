@@ -9,6 +9,42 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ads: {
+        Row: {
+          ad_position: string
+          ad_size: string
+          content: string
+          created_at: string
+          id: string
+          image_url: string | null
+          is_active: boolean
+          link_url: string
+          title: string
+        }
+        Insert: {
+          ad_position: string
+          ad_size: string
+          content: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          link_url: string
+          title: string
+        }
+        Update: {
+          ad_position?: string
+          ad_size?: string
+          content?: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          link_url?: string
+          title?: string
+        }
+        Relationships: []
+      }
       comments: {
         Row: {
           content: string
@@ -98,18 +134,21 @@ export type Database = {
           avatar_url: string | null
           full_name: string | null
           id: string
+          role: string | null
           updated_at: string | null
         }
         Insert: {
           avatar_url?: string | null
           full_name?: string | null
           id: string
+          role?: string | null
           updated_at?: string | null
         }
         Update: {
           avatar_url?: string | null
           full_name?: string | null
           id?: string
+          role?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -349,18 +388,21 @@ export type Database = {
       user_settings: {
         Row: {
           allow_learning: boolean | null
+          is_premium: boolean | null
           theme: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
           allow_learning?: boolean | null
+          is_premium?: boolean | null
           theme?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
           allow_learning?: boolean | null
+          is_premium?: boolean | null
           theme?: string | null
           updated_at?: string | null
           user_id?: string

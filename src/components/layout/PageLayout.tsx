@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -42,7 +41,6 @@ export default function PageLayout({ children }: PageLayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [isAdmin, setIsAdmin] = React.useState(false);
 
-  // Check if the user is an admin
   const { data: userRole } = useQuery({
     queryKey: ["user-role", user?.id],
     queryFn: async () => {
@@ -60,7 +58,6 @@ export default function PageLayout({ children }: PageLayoutProps) {
     enabled: !!user,
   });
 
-  // Set admin status when user role data is available
   React.useEffect(() => {
     if (userRole) {
       setIsAdmin(userRole.role === "admin");
@@ -92,7 +89,6 @@ export default function PageLayout({ children }: PageLayoutProps) {
     { title: "Leaderboard", path: "/leaderboard", icon: <Award className="w-5 h-5" /> },
   ];
 
-  // Add admin items if the user is an admin
   const adminItems = [
     { title: "Ad Manager", path: "/admin/ads", icon: <UserCog className="w-5 h-5" /> },
   ];
@@ -206,7 +202,6 @@ export default function PageLayout({ children }: PageLayoutProps) {
           </div>
         </div>
         
-        {/* Mobile navigation */}
         {isMobileMenuOpen && (
           <div className="container pb-3 md:hidden animate-in slide-in-from-top">
             <nav className="grid gap-2">

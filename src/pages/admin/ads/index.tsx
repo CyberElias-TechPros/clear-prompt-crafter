@@ -103,7 +103,7 @@ const AdManagerPage = () => {
 
   // Create ad mutation
   const createAdMutation = useMutation({
-    mutationFn: async (newAd: z.infer<typeof adSchema>) => {
+    mutationFn: async (newAd: Omit<Ad, 'id' | 'created_at'>) => {
       const { data, error } = await supabase
         .from("ads")
         .insert([newAd])
@@ -124,7 +124,7 @@ const AdManagerPage = () => {
 
   // Update ad mutation
   const updateAdMutation = useMutation({
-    mutationFn: async ({ id, ad }: { id: string; ad: z.infer<typeof adSchema> }) => {
+    mutationFn: async ({ id, ad }: { id: string; ad: Partial<Ad> }) => {
       const { data, error } = await supabase
         .from("ads")
         .update(ad)

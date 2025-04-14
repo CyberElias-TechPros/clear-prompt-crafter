@@ -1,10 +1,10 @@
-
 // Auth and User types
 export type UserProfile = {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
   updated_at: string;
+  role: 'user' | 'admin' | string;
 };
 
 export type UserSettings = {
@@ -12,6 +12,7 @@ export type UserSettings = {
   allow_learning: boolean;
   theme: 'light' | 'dark' | string;
   updated_at: string;
+  is_premium: boolean;
 };
 
 export type AIService = {
@@ -130,4 +131,16 @@ export type LeaderboardUser = {
   avatar_url: string | null;
   total_points: number;
   badge_count: number;
+};
+
+export type Ad = {
+  id: string;
+  title: string;
+  content: string;
+  image_url: string | null;
+  link_url: string;
+  ad_size: "small" | "medium" | "large";
+  ad_position: "top" | "side" | "inline" | "bottom";
+  is_active: boolean;
+  created_at: string;
 };
