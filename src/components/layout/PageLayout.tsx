@@ -28,7 +28,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { AdBanner } from "@/components/ads";
+import AdBanner from "@/components/ads/AdBanner";
 
 interface PageLayoutProps {
   children: React.ReactNode;

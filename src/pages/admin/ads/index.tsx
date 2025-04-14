@@ -1,17 +1,10 @@
-import React, { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import React, { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { Ad } from "@/lib/types";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -21,6 +14,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -29,627 +30,307 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-import { Trash2, Plus, Pencil } from "lucide-react";
-
-interface Ad {
-  id: string;
-  title: string;
-  content: string;
-  image_url: string | null;
-  link_url: string;
-  ad_size: "small" | "medium" | "large";
-  ad_position: "top" | "side" | "inline" | "bottom";
-  is_active: boolean;
-  created_at: string;
-}
-
-const adSchema = z.object({
-  title: z.string().min(3, { message: "Title must be at least 3 characters" }),
-  content: z.string().min(5, { message: "Content must be at least 5 characters" }),
-  image_url: z.string().url({ message: "Must be a valid URL" }).nullable().optional(),
-  link_url: z.string().url({ message: "Must be a valid URL" }),
-  ad_size: z.enum(["small", "medium", "large"], { 
-    required_error: "Please select an ad size" 
-  }),
-  ad_position: z.enum(["top", "side", "inline", "bottom"], { 
-    required_error: "Please select an ad position" 
-  }),
-  is_active: z.boolean().default(true),
-});
+import { AlertTriangle, Plus, Trash } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const AdManagerPage = () => {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
-  const [currentAd, setCurrentAd] = useState<Ad | null>(null);
+  const { toast } = useToast();
+  const [isAdDialogOpen, setIsAdDialogOpen] = useState(false);
+  const [newAd, setNewAd] = useState<Omit<Ad, "id" | "created_at">>({
+    title: "",
+    content: "",
+    ad_position: "top",
+    ad_size: "small",
+    image_url: null,
+    is_active: true,
+    link_url: "",
+  });
 
-  // Fetch ads
-  const { data: ads, isLoading } = useQuery({
-    queryKey: ["admin-ads"],
+  const { data: ads, refetch } = useQuery({
+    queryKey: ["ads"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("ads")
-        .select("*")
-        .order("created_at", { ascending: false });
-
+        .select("*");
+        
       if (error) throw error;
       return data as Ad[];
     },
   });
 
-  // Create ad mutation
-  const createAdMutation = useMutation({
-    mutationFn: async (newAd: Omit<Ad, 'id' | 'created_at'>) => {
-      const { data, error } = await supabase
+  const saveAd = async () => {
+    try {
+      // Validate required fields
+      if (!newAd.title || !newAd.content || !newAd.link_url) {
+        toast({
+          title: "Missing required fields",
+          description: "Please fill in all required fields",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const { error } = await supabase
         .from("ads")
-        .insert([newAd])
-        .select();
-
+        .insert([newAd]);
+        
       if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-ads"] });
-      toast.success("Ad created successfully");
-      setIsNewDialogOpen(false);
-    },
-    onError: (error) => {
-      toast.error(`Error creating ad: ${error.message}`);
-    },
-  });
+      
+      toast({
+        title: "Ad created",
+        description: "The ad has been created successfully",
+      });
+      
+      setIsAdDialogOpen(false);
+      setNewAd({
+        title: "",
+        content: "",
+        ad_position: "top",
+        ad_size: "small",
+        image_url: null,
+        is_active: true,
+        link_url: "",
+      });
+      
+      refetch();
+    } catch (error: any) {
+      console.error("Error creating ad:", error);
+      toast({
+        title: "Error creating ad",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
 
-  // Update ad mutation
-  const updateAdMutation = useMutation({
-    mutationFn: async ({ id, ad }: { id: string; ad: Partial<Ad> }) => {
-      const { data, error } = await supabase
+  const toggleAdStatus = async (id: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
         .from("ads")
-        .update(ad)
-        .eq("id", id)
-        .select();
-
+        .update({ is_active: !currentStatus })
+        .eq("id", id);
+        
       if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-ads"] });
-      toast.success("Ad updated successfully");
-      setIsEditDialogOpen(false);
-    },
-    onError: (error) => {
-      toast.error(`Error updating ad: ${error.message}`);
-    },
-  });
+      
+      toast({
+        title: `Ad ${!currentStatus ? "activated" : "deactivated"}`,
+        description: `The ad has been ${!currentStatus ? "activated" : "deactivated"} successfully`,
+      });
+      
+      refetch();
+    } catch (error: any) {
+      console.error("Error toggling ad status:", error);
+      toast({
+        title: "Error updating ad",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
 
-  // Delete ad mutation
-  const deleteAdMutation = useMutation({
-    mutationFn: async (id: string) => {
+  const deleteAd = async (id: string) => {
+    try {
       const { error } = await supabase
         .from("ads")
         .delete()
         .eq("id", id);
-
+        
       if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-ads"] });
-      toast.success("Ad deleted successfully");
-    },
-    onError: (error) => {
-      toast.error(`Error deleting ad: ${error.message}`);
-    },
-  });
-
-  // Form for new ads
-  const newForm = useForm<z.infer<typeof adSchema>>({
-    resolver: zodResolver(adSchema),
-    defaultValues: {
-      title: "",
-      content: "",
-      image_url: "",
-      link_url: "",
-      ad_size: "medium",
-      ad_position: "inline",
-      is_active: true,
-    },
-  });
-
-  // Form for editing ads
-  const editForm = useForm<z.infer<typeof adSchema>>({
-    resolver: zodResolver(adSchema),
-    defaultValues: {
-      title: "",
-      content: "",
-      image_url: "",
-      link_url: "",
-      ad_size: "medium",
-      ad_position: "inline",
-      is_active: true,
-    },
-  });
-
-  // Set edit form values when currentAd changes
-  useEffect(() => {
-    if (currentAd) {
-      editForm.reset({
-        title: currentAd.title,
-        content: currentAd.content,
-        image_url: currentAd.image_url || "",
-        link_url: currentAd.link_url,
-        ad_size: currentAd.ad_size,
-        ad_position: currentAd.ad_position,
-        is_active: currentAd.is_active,
+      
+      toast({
+        title: "Ad deleted",
+        description: "The ad has been deleted successfully",
+      });
+      
+      refetch();
+    } catch (error: any) {
+      console.error("Error deleting ad:", error);
+      toast({
+        title: "Error deleting ad",
+        description: error.message,
+        variant: "destructive",
       });
     }
-  }, [currentAd, editForm]);
-
-  const handleCreateSubmit = (values: z.infer<typeof adSchema>) => {
-    createAdMutation.mutate(values);
-  };
-
-  const handleEditSubmit = (values: z.infer<typeof adSchema>) => {
-    if (currentAd) {
-      updateAdMutation.mutate({ id: currentAd.id, ad: values });
-    }
-  };
-
-  const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this ad?")) {
-      deleteAdMutation.mutate(id);
-    }
-  };
-
-  const handleEditClick = (ad: Ad) => {
-    setCurrentAd(ad);
-    setIsEditDialogOpen(true);
   };
 
   return (
     <div className="container py-8">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Ad Manager</h1>
-          <p className="text-muted-foreground">
-            Create and manage advertisements for the platform
-          </p>
-        </div>
-
-        <Dialog open={isNewDialogOpen} onOpenChange={setIsNewDialogOpen}>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold">Ad Manager</h1>
+        <Dialog open={isAdDialogOpen} onOpenChange={setIsAdDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-purple-600 hover:bg-purple-700">
-              <Plus className="mr-2 h-4 w-4" />
+            <Button className="gap-2">
+              <Plus size={16} />
               Create New Ad
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[550px]">
+          <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Create New Advertisement</DialogTitle>
               <DialogDescription>
-                Fill in the details to create a new ad for the platform
+                Create a new advertisement to display on your platform
               </DialogDescription>
             </DialogHeader>
-
-            <Form {...newForm}>
-              <form
-                onSubmit={newForm.handleSubmit(handleCreateSubmit)}
-                className="space-y-4"
-              >
-                <FormField
-                  control={newForm.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Title</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter ad title" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="ad-title">Title</Label>
+                <Input
+                  id="ad-title"
+                  value={newAd.title}
+                  onChange={(e) => setNewAd({ ...newAd, title: e.target.value })}
+                  placeholder="Enter ad title"
                 />
-
-                <FormField
-                  control={newForm.control}
-                  name="content"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Content</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Enter ad content" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="ad-content">Content</Label>
+                <Textarea
+                  id="ad-content"
+                  value={newAd.content}
+                  onChange={(e) => setNewAd({ ...newAd, content: e.target.value })}
+                  placeholder="Enter ad content"
                 />
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={newForm.control}
-                    name="ad_size"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Size</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select size" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="small">Small</SelectItem>
-                            <SelectItem value="medium">Medium</SelectItem>
-                            <SelectItem value="large">Large</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={newForm.control}
-                    name="ad_position"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Position</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select position" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="top">Top</SelectItem>
-                            <SelectItem value="side">Side</SelectItem>
-                            <SelectItem value="inline">Inline</SelectItem>
-                            <SelectItem value="bottom">Bottom</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={newForm.control}
-                  name="image_url"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Image URL (optional)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://example.com/image.jpg" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="ad-image-url">Image URL (optional)</Label>
+                <Input
+                  id="ad-image-url"
+                  value={newAd.image_url || ""}
+                  onChange={(e) => setNewAd({ ...newAd, image_url: e.target.value || null })}
+                  placeholder="Enter image URL"
                 />
-
-                <FormField
-                  control={newForm.control}
-                  name="link_url"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Link URL</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://example.com" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="ad-link-url">Link URL</Label>
+                <Input
+                  id="ad-link-url"
+                  value={newAd.link_url}
+                  onChange={(e) => setNewAd({ ...newAd, link_url: e.target.value })}
+                  placeholder="Enter link URL"
                 />
-
-                <FormField
-                  control={newForm.control}
-                  name="is_active"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                      <div className="space-y-0.5">
-                        <FormLabel>Active</FormLabel>
-                        <FormDescription>
-                          Activate or deactivate this advertisement
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsNewDialogOpen(false)}
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="ad-size">Ad Size</Label>
+                  <Select 
+                    value={newAd.ad_size} 
+                    onValueChange={(value) => setNewAd({ ...newAd, ad_size: value as "small" | "medium" | "large" })}
                   >
-                    Cancel
-                  </Button>
-                  <Button type="submit">Create Ad</Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="sm:max-w-[550px]">
-            <DialogHeader>
-              <DialogTitle>Edit Advertisement</DialogTitle>
-              <DialogDescription>
-                Update the details for this advertisement
-              </DialogDescription>
-            </DialogHeader>
-
-            <Form {...editForm}>
-              <form
-                onSubmit={editForm.handleSubmit(handleEditSubmit)}
-                className="space-y-4"
-              >
-                <FormField
-                  control={editForm.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Title</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter ad title" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={editForm.control}
-                  name="content"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Content</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Enter ad content" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={editForm.control}
-                    name="ad_size"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Size</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select size" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="small">Small</SelectItem>
-                            <SelectItem value="medium">Medium</SelectItem>
-                            <SelectItem value="large">Large</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={editForm.control}
-                    name="ad_position"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Position</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select position" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="top">Top</SelectItem>
-                            <SelectItem value="side">Side</SelectItem>
-                            <SelectItem value="inline">Inline</SelectItem>
-                            <SelectItem value="bottom">Bottom</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select size" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectLabel>Size</SelectLabel>
+                        <SelectItem value="small">Small</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="large">Large</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
                 </div>
-
-                <FormField
-                  control={editForm.control}
-                  name="image_url"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Image URL (optional)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://example.com/image.jpg" {...field} value={field.value || ""} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={editForm.control}
-                  name="link_url"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Link URL</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://example.com" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={editForm.control}
-                  name="is_active"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                      <div className="space-y-0.5">
-                        <FormLabel>Active</FormLabel>
-                        <FormDescription>
-                          Activate or deactivate this advertisement
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsEditDialogOpen(false)}
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="ad-position">Ad Position</Label>
+                  <Select 
+                    value={newAd.ad_position} 
+                    onValueChange={(value) => setNewAd({ ...newAd, ad_position: value as "top" | "side" | "inline" | "bottom" })}
                   >
-                    Cancel
-                  </Button>
-                  <Button type="submit">Update Ad</Button>
-                </DialogFooter>
-              </form>
-            </Form>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select position" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectLabel>Position</SelectLabel>
+                        <SelectItem value="top">Top</SelectItem>
+                        <SelectItem value="side">Side</SelectItem>
+                        <SelectItem value="inline">Inline</SelectItem>
+                        <SelectItem value="bottom">Bottom</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="ad-active"
+                  checked={newAd.is_active}
+                  onCheckedChange={(checked) => setNewAd({ ...newAd, is_active: checked })}
+                />
+                <Label htmlFor="ad-active">Active</Label>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsAdDialogOpen(false)}>Cancel</Button>
+              <Button onClick={saveAd}>Save</Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
-
+      
       <Card>
         <CardHeader>
-          <CardTitle>All Advertisements</CardTitle>
+          <CardTitle>Advertisements</CardTitle>
           <CardDescription>
-            Manage all ads displayed across the platform
+            Manage your platform advertisements
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center py-10">
-              <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-            </div>
-          ) : !ads || ads.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 text-center">
-              <p className="text-xl font-semibold">No advertisements found</p>
-              <p className="text-muted-foreground">
-                Create your first ad to start monetizing the platform
-              </p>
-              <Button
-                className="mt-4 bg-purple-600 hover:bg-purple-700"
-                onClick={() => setIsNewDialogOpen(true)}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Create Your First Ad
-              </Button>
-            </div>
-          ) : (
+          {ads && ads.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Title</TableHead>
-                  <TableHead>Size</TableHead>
                   <TableHead>Position</TableHead>
+                  <TableHead>Size</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Created</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {ads.map((ad) => (
                   <TableRow key={ad.id}>
+                    <TableCell className="font-medium">{ad.title}</TableCell>
+                    <TableCell>{ad.ad_position}</TableCell>
+                    <TableCell>{ad.ad_size}</TableCell>
                     <TableCell>
-                      <div>
-                        <p className="font-medium">{ad.title}</p>
-                        <p className="truncate text-sm text-muted-foreground">
-                          {ad.content.length > 30
-                            ? `${ad.content.substring(0, 30)}...`
-                            : ad.content}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="capitalize">{ad.ad_size}</TableCell>
-                    <TableCell className="capitalize">{ad.ad_position}</TableCell>
-                    <TableCell>
-                      <div
-                        className={`flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                          ad.is_active
-                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-                            : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
-                        }`}
-                      >
+                      <span className={`px-2 py-1 text-xs rounded-full ${ad.is_active ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}>
                         {ad.is_active ? "Active" : "Inactive"}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {new Date(ad.created_at).toLocaleDateString()}
+                      </span>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end space-x-2">
+                      <div className="flex justify-end gap-2">
                         <Button
                           variant="outline"
-                          size="icon"
-                          onClick={() => handleEditClick(ad)}
+                          size="sm"
+                          onClick={() => toggleAdStatus(ad.id, ad.is_active)}
                         >
-                          <Pencil className="h-4 w-4" />
+                          {ad.is_active ? "Deactivate" : "Activate"}
                         </Button>
                         <Button
                           variant="destructive"
                           size="icon"
-                          onClick={() => handleDelete(ad.id)}
+                          onClick={() => deleteAd(ad.id)}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>
@@ -657,6 +338,14 @@ const AdManagerPage = () => {
                 ))}
               </TableBody>
             </Table>
+          ) : (
+            <div className="text-center py-8">
+              <AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground" />
+              <h3 className="mt-2 text-lg font-medium">No ads found</h3>
+              <p className="text-sm text-muted-foreground">
+                Get started by creating a new advertisement.
+              </p>
+            </div>
           )}
         </CardContent>
       </Card>

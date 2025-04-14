@@ -36,7 +36,6 @@ const App = () => (
           <Routes>
             {/* Public landing page */}
             <Route path="/" element={<LandingPage />} />
-            
             <Route path="/auth" element={<AuthPage />} />
             
             {/* Protected routes with PageLayout */}
@@ -77,7 +76,9 @@ const App = () => (
             } />
             <Route path="/prompts/new" element={
               <ProtectedRoute>
-                <NewPromptPage />
+                <PageLayout>
+                  <NewPromptPage />
+                </PageLayout>
               </ProtectedRoute>
             } />
             <Route path="/admin/ads" element={

@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import PromptGuidelineCard from "@/components/prompt-guidelines/PromptGuidelineCard";
-import { AdBanner } from "@/components/ads";
+import AdBanner from "@/components/ads/AdBanner";
 
 const debuggingTips = [
   "Always provide specific, detailed descriptions of what you want to achieve",
@@ -40,7 +40,6 @@ const AuthPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect if already authenticated
   React.useEffect(() => {
     if (user) {
       navigate("/dashboard");
