@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
-import { PenTool } from "lucide-react";
+import { PenTool, HelpCircle, Bug, CheckCircle, AlertTriangle } from "lucide-react";
 import PromptGuidelineCard from "@/components/prompt-guidelines/PromptGuidelineCard";
 
 const AuthPage = () => {
@@ -93,137 +92,222 @@ const AuthPage = () => {
     }
   };
 
+  const guidelines = {
+    debuggingBestPractices: {
+      title: "Debugging Best Practices",
+      description: "Tips for effective debugging with AI",
+      content: [
+        "Always provide specific, detailed descriptions of what you want to achieve",
+        "Break down complex problems into smaller, manageable steps",
+        "Use clear, unambiguous language in your prompts",
+        "Include relevant context and constraints",
+        "Specify the desired outcome explicitly"
+      ],
+      variant: "debug"
+    },
+    promptEngineeringGuidelines: {
+      title: "Prompt Engineering Guidelines",
+      description: "Best practices for writing effective prompts",
+      content: [
+        "Start with a clear context setting",
+        "Define tasks with measurable outcomes",
+        "Include specific guidelines and constraints",
+        "Consider error handling and edge cases",
+        "Review and iterate on your prompts"
+      ],
+      variant: "tip"
+    },
+    debuggingWorkflows: {
+      title: "Debugging Workflows",
+      description: "Step-by-step approaches to solve problems",
+      content: [
+        "When something doesn't work, add more specificity to your request",
+        "Use the console logs to understand how data is flowing through your application",
+        "Isolate the problem area before attempting fixes",
+        "For complex bugs, create a minimal reproducible example",
+        "Add 'console.log' statements strategically to track the execution flow"
+      ],
+      variant: "warning"
+    },
+    promptRefinementTechniques: {
+      title: "Prompt Refinement Techniques",
+      description: "How to iterate and improve your prompts",
+      content: [
+        "After initial results, refine prompts by adding more specific constraints",
+        "Use the CLEAR framework: Concise, Logical, Explicit, Adaptive, Reflective",
+        "For code generation, specify exact function signatures and return types",
+        "Include examples of expected inputs and outputs for better understanding",
+        "When refactoring, explicitly mention what should NOT change"
+      ],
+      variant: "success"
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <div className="container flex-1 flex items-center justify-center py-12 px-4">
-        <div className="w-full max-w-md space-y-8">
-          <div className="text-center">
-            <div className="flex justify-center mb-4">
-              <div className="p-3 rounded-full bg-purple-100 dark:bg-purple-900/30">
-                <PenTool className="h-8 w-8 text-purple-600" />
+        <div className="w-full max-w-4xl space-y-8 flex">
+          <div className="w-1/2 pr-6">
+            <div className="text-center mb-8">
+              <div className="flex justify-center mb-4">
+                <div className="p-3 rounded-full bg-purple-100 dark:bg-purple-900/30">
+                  <PenTool className="h-8 w-8 text-purple-600" />
+                </div>
               </div>
+              <h1 className="text-3xl font-bold">Prompt-Gineer</h1>
+              <p className="text-muted-foreground mt-2">
+                Sign in to access your personalized prompt engineering workspace
+              </p>
             </div>
-            <h1 className="text-3xl font-bold">Prompt-Gineer</h1>
-            <p className="text-muted-foreground mt-2">
-              Sign in to access your personalized prompt engineering workspace
-            </p>
+
+            <Card>
+              <CardHeader className="space-y-1">
+                <Tabs defaultValue="sign-in" value={activeTab} onValueChange={setActiveTab} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="sign-in">Sign In</TabsTrigger>
+                    <TabsTrigger value="sign-up">Sign Up</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </CardHeader>
+
+              <CardContent className="p-6">
+                {activeTab === "sign-in" ? (
+                  <form onSubmit={handleSignIn} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="name@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Password</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    {authError && (
+                      <div className="p-3 rounded-md bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 text-sm">
+                        {authError}
+                      </div>
+                    )}
+
+                    <Button
+                      type="submit"
+                      className="w-full bg-purple-600 hover:bg-purple-700"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? "Signing In..." : "Sign In"}
+                    </Button>
+                  </form>
+                ) : (
+                  <form onSubmit={handleSignUp} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-email">Email</Label>
+                      <Input
+                        id="signup-email"
+                        type="email"
+                        placeholder="name@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-password">Password</Label>
+                      <Input
+                        id="signup-password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirm-password">Confirm Password</Label>
+                      <Input
+                        id="confirm-password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    {authError && (
+                      <div className="p-3 rounded-md bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 text-sm">
+                        {authError}
+                      </div>
+                    )}
+
+                    <Button
+                      type="submit"
+                      className="w-full bg-purple-600 hover:bg-purple-700"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? "Creating Account..." : "Create Account"}
+                    </Button>
+                  </form>
+                )}
+              </CardContent>
+            </Card>
+
+            <div className="text-center text-sm text-muted-foreground mt-4">
+              <p>
+                By continuing, you agree to our{" "}
+                <a href="/terms" className="underline hover:text-primary">
+                  Terms of Service
+                </a>{" "}
+                and{" "}
+                <a href="/privacy" className="underline hover:text-primary">
+                  Privacy Policy
+                </a>
+              </p>
+            </div>
           </div>
 
-          <Card>
-            <CardHeader className="space-y-1">
-              <Tabs defaultValue="sign-in" value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="sign-in">Sign In</TabsTrigger>
-                  <TabsTrigger value="sign-up">Sign Up</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </CardHeader>
-
-            <CardContent className="p-6">
-              {activeTab === "sign-in" ? (
-                <form onSubmit={handleSignIn} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="name@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  {authError && (
-                    <div className="p-3 rounded-md bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 text-sm">
-                      {authError}
-                    </div>
-                  )}
-
-                  <Button
-                    type="submit"
-                    className="w-full bg-purple-600 hover:bg-purple-700"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Signing In..." : "Sign In"}
-                  </Button>
-                </form>
-              ) : (
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="name@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="confirm-password">Confirm Password</Label>
-                    <Input
-                      id="confirm-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  {authError && (
-                    <div className="p-3 rounded-md bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 text-sm">
-                      {authError}
-                    </div>
-                  )}
-
-                  <Button
-                    type="submit"
-                    className="w-full bg-purple-600 hover:bg-purple-700"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Creating Account..." : "Create Account"}
-                  </Button>
-                </form>
-              )}
-            </CardContent>
-          </Card>
-
-          <div className="text-center text-sm text-muted-foreground">
-            <p>
-              By continuing, you agree to our{" "}
-              <a href="/terms" className="underline hover:text-primary">
-                Terms of Service
-              </a>{" "}
-              and{" "}
-              <a href="/privacy" className="underline hover:text-primary">
-                Privacy Policy
-              </a>
-            </p>
+          <div className="w-1/2 pl-6 border-l border-muted">
+            <h2 className="text-2xl font-bold mb-6 flex items-center">
+              <HelpCircle className="mr-2 text-purple-600" /> Guidelines for Effective Prompting
+            </h2>
+            <div className="space-y-6">
+              <PromptGuidelineCard 
+                title={guidelines.debuggingBestPractices.title}
+                description={guidelines.debuggingBestPractices.description}
+                content={guidelines.debuggingBestPractices.content}
+                variant="debug"
+              />
+              <PromptGuidelineCard 
+                title={guidelines.promptEngineeringGuidelines.title}
+                description={guidelines.promptEngineeringGuidelines.description}
+                content={guidelines.promptEngineeringGuidelines.content}
+                variant="tip"
+              />
+              <PromptGuidelineCard 
+                title={guidelines.debuggingWorkflows.title}
+                description={guidelines.debuggingWorkflows.description}
+                content={guidelines.debuggingWorkflows.content}
+                variant="warning"
+              />
+              <PromptGuidelineCard 
+                title={guidelines.promptRefinementTechniques.title}
+                description={guidelines.promptRefinementTechniques.description}
+                content={guidelines.promptRefinementTechniques.content}
+                variant="success"
+              />
+            </div>
           </div>
         </div>
       </div>
