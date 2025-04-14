@@ -1,185 +1,72 @@
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
+import PromptGuidelineCard from "@/components/prompt-guidelines/PromptGuidelineCard";
+
+const debuggingTips = [
+  "Always provide specific, detailed descriptions of what you want to achieve",
+  "Break down complex problems into smaller, manageable steps",
+  "Use clear, unambiguous language in your prompts",
+  "Include relevant context and constraints",
+  "Specify the desired outcome explicitly",
+];
+
+const bestPractices = [
+  "Start with a clear context setting",
+  "Define tasks with measurable outcomes",
+  "Include specific guidelines and constraints",
+  "Consider error handling and edge cases",
+  "Review and iterate on your prompts",
+];
 
 const AuthPage = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const { signIn, signUp, user } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
 
-  useEffect(() => {
+  // Redirect if already authenticated
+  React.useEffect(() => {
     if (user) {
       navigate("/");
     }
   }, [user, navigate]);
 
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      const { error } = await signIn(email, password);
-      
-      if (error) {
-        toast({
-          title: "Sign in failed",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Welcome back!",
-          description: "You've successfully signed in.",
-        });
-        navigate("/");
-      }
-    } catch (err) {
-      toast({
-        title: "An error occurred",
-        description: "Please try again later.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      const { error } = await signUp(email, password, {
-        full_name: fullName,
-      });
-      
-      if (error) {
-        toast({
-          title: "Sign up failed",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Account created!",
-          description: "Please check your email to confirm your account.",
-        });
-      }
-    } catch (err) {
-      toast({
-        title: "An error occurred",
-        description: "Please try again later.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-purple-50 to-white px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Prompt-Gineer</CardTitle>
-          <CardDescription>
-            Sign in to your account or create a new one to get started.
-          </CardDescription>
-        </CardHeader>
-        <Tabs defaultValue="signin">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="signin">Sign In</TabsTrigger>
-            <TabsTrigger value="signup">Sign Up</TabsTrigger>
-          </TabsList>
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto py-8 px-4">
+        <h1 className="text-4xl font-bold text-center mb-8">Welcome to Prompt-Gineer</h1>
+        
+        <div className="max-w-4xl mx-auto space-y-8">
+          <p className="text-center text-muted-foreground mb-8">
+            Before you begin, here are some guidelines for effective prompt engineering
+          </p>
           
-          <TabsContent value="signin">
-            <form onSubmit={handleSignIn}>
-              <CardContent className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="name@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Signing in..." : "Sign In"}
-                </Button>
-              </CardFooter>
-            </form>
-          </TabsContent>
+          <div className="grid gap-6 md:grid-cols-2">
+            <PromptGuidelineCard
+              title="Debugging Best Practices"
+              description="Tips for effective debugging with AI"
+              content={debuggingTips}
+            />
+            
+            <PromptGuidelineCard
+              title="Prompt Engineering Guidelines"
+              description="Best practices for writing effective prompts"
+              content={bestPractices}
+            />
+          </div>
           
-          <TabsContent value="signup">
-            <form onSubmit={handleSignUp}>
-              <CardContent className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
-                  <Input
-                    id="fullName"
-                    type="text"
-                    placeholder="John Doe"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="emailSignup">Email</Label>
-                  <Input
-                    id="emailSignup"
-                    type="email"
-                    placeholder="name@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="passwordSignup">Password</Label>
-                  <Input
-                    id="passwordSignup"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Creating account..." : "Sign Up"}
-                </Button>
-              </CardFooter>
-            </form>
-          </TabsContent>
-        </Tabs>
-      </Card>
+          <div className="bg-purple-50 p-6 rounded-lg mt-8">
+            <h2 className="text-xl font-semibold mb-4 text-purple-700">
+              Why Good Prompts Matter
+            </h2>
+            <p className="text-muted-foreground">
+              Clear, well-structured prompts lead to better results. They help the AI understand
+              your needs and provide more accurate solutions. Remember to be specific,
+              provide context, and break down complex requests into manageable steps.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
