@@ -154,7 +154,7 @@ const AIServicesPage = () => {
     mutationFn: async ({ serviceName, apiKey }: { serviceName: string; apiKey: string }) => {
       setIsLoading(true);
       
-      const response = await fetch(`${process.env.SUPABASE_FUNCTIONS_URL || "https://fandkcurnirrnuecprtx.supabase.co/functions/v1"}/store-api-key`, {
+      const response = await fetch(`https://sahpsmlnzrkedjusdbib.supabase.co/functions/v1/store-api-key`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

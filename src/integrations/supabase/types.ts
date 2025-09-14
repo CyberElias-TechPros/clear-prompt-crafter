@@ -447,6 +447,94 @@ export type Database = {
         Args: { key_value: string }
         Returns: string
       }
+      get_leaderboard: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          avatar_url: string
+          badge_count: number
+          full_name: string
+          total_points: number
+          user_id: string
+        }[]
+      }
+      get_prompt_details: {
+        Args: { prompt_id: string }
+        Returns: {
+          created_at: string
+          description: string
+          id: string
+          is_public: boolean
+          likes: number
+          sections: Json
+          title: string
+          updated_at: string
+          user_avatar: string
+          user_id: string
+          user_name: string
+          views: number
+        }[]
+      }
+      get_public_prompts: {
+        Args: { search_term?: string; sort_by?: string }
+        Returns: {
+          created_at: string
+          description: string
+          id: string
+          like_count: number
+          title: string
+          updated_at: string
+          user_avatar: string
+          user_id: string
+          user_name: string
+        }[]
+      }
+      get_public_templates: {
+        Args: { search_term?: string; sort_by?: string }
+        Returns: {
+          created_at: string
+          description: string
+          id: string
+          like_count: number
+          title: string
+          updated_at: string
+          user_avatar: string
+          user_id: string
+          user_name: string
+        }[]
+      }
+      get_template_details: {
+        Args: { template_id: string }
+        Returns: {
+          created_at: string
+          description: string
+          id: string
+          is_public: boolean
+          likes: number
+          sections: Json
+          title: string
+          updated_at: string
+          user_avatar: string
+          user_id: string
+          user_name: string
+          views: number
+        }[]
+      }
+      increment_prompt_views: {
+        Args: { prompt_id: string }
+        Returns: undefined
+      }
+      increment_template_views: {
+        Args: { template_id: string }
+        Returns: undefined
+      }
+      toggle_prompt_like: {
+        Args: { prompt_id: string }
+        Returns: boolean
+      }
+      toggle_template_like: {
+        Args: { template_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
