@@ -12,8 +12,9 @@ import AuthPage from "./pages/auth";
 import AIServicesPage from "./pages/ai-services";
 import ConnectServicePage from "./pages/ai-services/connect/[serviceId]";
 import CommunityPage from "./pages/community";
-import PromptDetailPage from "./pages/community/prompt/[id]";
+import CommunityDetailPage from "./pages/community/detail";
 import NewPromptPage from "./pages/prompts/new";
+import NewTemplatePage from "./pages/templates/new";
 import LeaderboardPage from "./pages/leaderboard";
 import ProfilePage from "./pages/profile";
 import SettingsPage from "./pages/settings"; 
@@ -81,6 +82,13 @@ const App = () => (
                 </PageLayout>
               </ProtectedRoute>
             } />
+            <Route path="/templates/new" element={
+              <ProtectedRoute>
+                <PageLayout>
+                  <NewTemplatePage />
+                </PageLayout>
+              </ProtectedRoute>
+            } />
             <Route path="/admin/ads" element={
               <ProtectedRoute>
                 <PageLayout>
@@ -97,7 +105,12 @@ const App = () => (
             } />
             <Route path="/community/prompt/:id" element={
               <PageLayout>
-                <PromptDetailPage />
+                <CommunityDetailPage kind="prompt" />
+              </PageLayout>
+            } />
+            <Route path="/community/template/:id" element={
+              <PageLayout>
+                <CommunityDetailPage kind="template" />
               </PageLayout>
             } />
             <Route path="/leaderboard" element={

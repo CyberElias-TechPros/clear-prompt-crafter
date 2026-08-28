@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { aiApi } from "@/lib/backend";
+import { AIServiceRow, AIProviderInfo } from "@/lib/api";
 
 import {
   Card,
@@ -29,7 +29,6 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { AdBanner } from "@/components/ads";
-import { AIService, SupportedAIService } from "@/lib/types";
 import {
   Check,
   KeyRound,
@@ -37,229 +36,143 @@ import {
   RefreshCw,
   Settings,
   ShieldAlert,
+  Sparkles,
+  Trash2,
+  FlaskConical,
   X,
 } from "lucide-react";
+
+// Brand-neutral gradient initials used instead of external logo CDNs (which are
+// unreliable and leak user IPs).
+const SERVICE_META: Record<string, { short: string; color: string; blurb: string }> = {
+  nvidia: { short: "NV", color: "from-green-500 to-emerald-700", blurb: "Zero-cost NVIDIA NIM models — the built-in free tier." },
+  openai: { short: "OAI", color: "from-teal-500 to-emerald-600", blurb: "Access GPT models for text generation and analysis." },
+  anthropic: { short: "AN", color: "from-orange-400 to-amber-600", blurb: "Use Claude for nuanced, detailed, creative generation." },
+  gemini: { short: "GE", color: "from-blue-500 to-indigo-600", blurb: "Google's multimodal Gemini models." },
+  mistral: { short: "MI", color: "from-orange-500 to-red-600", blurb: "Efficient, powerful open models from Mistral AI." },
+  cohere: { short: "CO", color: "from-violet-500 to-purple-600", blurb: "Text generation, embeddings and semantic search." },
+  deepseek: { short: "DS", color: "from-sky-500 to-blue-700", blurb: "Strong reasoning and code-specialized models." },
+  groq: { short: "GQ", color: "from-red-500 to-orange-600", blurb: "Ultra-fast LLM inference." },
+  perplexity: { short: "PX", color: "from-cyan-500 to-teal-600", blurb: "Research-backed responses with real-time web data." },
+  llama: { short: "LL", color: "from-blue-600 to-violet-700", blurb: "Meta's open-source Llama models." },
+};
+
+const ServiceLogo = ({ id, name }: { id: string; name: string }) => {
+  const meta = SERVICE_META[id] ?? { short: name.slice(0, 2).toUpperCase(), color: "from-gray-500 to-gray-700" };
+  return (
+    <div
+      className={`h-10 w-10 shrink-0 rounded-full bg-gradient-to-br ${meta.color} flex items-center justify-center text-white text-xs font-bold`}
+      aria-hidden
+    >
+      {meta.short}
+    </div>
+  );
+};
 
 const AIServicesPage = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isAddingKey, setIsAddingKey] = useState(false);
-  const [selectedService, setSelectedService] = useState<SupportedAIService | null>(null);
+  const [selectedService, setSelectedService] = useState<AIProviderInfo | null>(null);
   const [apiKey, setApiKey] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [baseUrl, setBaseUrl] = useState("");
+  const [modelName, setModelName] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // List of supported AI services
-  const supportedServices: SupportedAIService[] = [
-    {
-      id: "openai",
-      name: "OpenAI",
-      logo: "https://cdn.lovable.ai/images/avatars/openai.png",
-      description: "Access GPT models for text generation, analysis, and more.",
-      authUrl: "https://platform.openai.com/api-keys",
-      apiKeyTitle: "OpenAI API Key",
-    },
-    {
-      id: "anthropic",
-      name: "Anthropic",
-      logo: "https://cdn.lovable.ai/images/avatars/anthropic.png",
-      description: "Use Claude for nuanced, detailed, and creative text generation.",
-      authUrl: "https://console.anthropic.com/settings/keys",
-      apiKeyTitle: "Anthropic API Key",
-    },
-    {
-      id: "perplexity",
-      name: "Perplexity",
-      logo: "https://cdn.lovable.ai/images/avatars/perplexity.svg",
-      description: "Generate research-backed responses with citations and real-time web data.",
-      authUrl: "https://www.perplexity.ai/settings/api",
-      apiKeyTitle: "Perplexity API Key",
-    },
-    {
-      id: "gemini",
-      name: "Google Gemini",
-      logo: "https://cdn.lovable.ai/images/avatars/google.png",
-      description: "Use Google's powerful multimodal Gemini models for text and image analysis.",
-      authUrl: "https://aistudio.google.com/app/apikey",
-      apiKeyTitle: "Google Gemini API Key",
-    },
-    {
-      id: "mistral",
-      name: "Mistral AI",
-      logo: "https://cdn.lovable.ai/images/avatars/mistral.png",
-      description: "Access efficient, powerful open models with Mistral AI's offerings.",
-      authUrl: "https://console.mistral.ai/api-keys/",
-      apiKeyTitle: "Mistral API Key",
-    },
-    {
-      id: "llama",
-      name: "Llama (Meta)",
-      logo: "https://cdn.lovable.ai/images/avatars/meta.png",
-      description: "Use Meta's open-source large language models for various NLP tasks.",
-      authUrl: "https://llama.meta.com/get-api-key/",
-      apiKeyTitle: "Llama API Key",
-    },
-    {
-      id: "cohere",
-      name: "Cohere",
-      logo: "https://cdn.lovable.ai/images/avatars/cohere.png",
-      description: "Generate text, embeddings, and semantic search capabilities.",
-      authUrl: "https://dashboard.cohere.ai/api-keys",
-      apiKeyTitle: "Cohere API Key",
-    },
-    {
-      id: "deepseek",
-      name: "DeepSeek",
-      logo: "https://cdn.lovable.ai/images/avatars/deepseek.png",
-      description: "Access cutting-edge AI models specialized in code and language tasks.",
-      authUrl: "https://platform.deepseek.com/api-keys",
-      apiKeyTitle: "DeepSeek API Key",
-    },
-    {
-      id: "groq",
-      name: "Groq",
-      logo: "https://cdn.lovable.ai/images/avatars/groq.png",
-      description: "Ultra-fast inference for LLMs with specialized hardware acceleration.",
-      authUrl: "https://console.groq.com/keys",
-      apiKeyTitle: "Groq API Key",
-    },
-    {
-      id: "azure_openai",
-      name: "Azure OpenAI",
-      logo: "https://cdn.lovable.ai/images/avatars/azure.png",
-      description: "Enterprise-grade OpenAI models with Azure's security and compliance.",
-      authUrl: "https://portal.azure.com/",
-      apiKeyTitle: "Azure OpenAI API Key",
-    },
-  ];
-
-  // Fetch connected services
-  const { data: connectedServices } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["ai-services", user?.id],
-    queryFn: async () => {
-      if (!user) return [];
-      
-      const { data, error } = await supabase
-        .from("user_ai_services")
-        .select("*")
-        .eq("user_id", user.id);
-      
-      if (error) throw error;
-      return data as AIService[];
-    },
+    queryFn: () => aiApi.services(),
     enabled: !!user,
   });
 
-  // Add API key mutation
-  const addApiKeyMutation = useMutation({
-    mutationFn: async ({ serviceName, apiKey }: { serviceName: string; apiKey: string }) => {
-      setIsLoading(true);
-      
-      const response = await fetch(`https://sahpsmlnzrkedjusdbib.supabase.co/functions/v1/store-api-key`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-        },
-        body: JSON.stringify({ 
-          service_name: serviceName,
-          api_key: apiKey
-        }),
-      });
+  const providers = data?.providers ?? [];
+  const connected = data?.services ?? [];
+  const platform = data?.platform;
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to store API key");
-      }
-      
-      return await response.json();
-    },
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["ai-services"] });
+
+  const connectMutation = useMutation({
+    mutationFn: () =>
+      aiApi.connect(selectedService!.id, apiKey, {
+        base_url: baseUrl || undefined,
+        model: modelName || undefined,
+      }),
+    onMutate: () => setIsSubmitting(true),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["ai-services"] });
-      toast.success("API key connected successfully!");
+      invalidate();
+      toast.success(`${selectedService?.label} connected successfully!`);
       setIsAddingKey(false);
-      setApiKey("");
       setSelectedService(null);
-      setIsLoading(false);
+      setApiKey("");
+      setBaseUrl("");
+      setModelName("");
     },
-    onError: (error) => {
-      toast.error(`Error connecting API key: ${error.message}`);
-      setIsLoading(false);
-    },
+    onError: (error: any) => toast.error(`Error connecting key: ${error.message}`),
+    onSettled: () => setIsSubmitting(false),
   });
 
-  // Toggle service activation
-  const toggleServiceMutation = useMutation({
-    mutationFn: async ({ serviceId, isActive }: { serviceId: string; isActive: boolean }) => {
-      const { data, error } = await supabase
-        .from("user_ai_services")
-        .update({ is_active: isActive })
-        .eq("id", serviceId)
-        .select();
-      
-      if (error) throw error;
-      return data;
-    },
+  const toggleMutation = useMutation({
+    mutationFn: ({ name, active }: { name: string; active: boolean }) => aiApi.setActive(name, active),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["ai-services"] });
+      invalidate();
       toast.success("Service status updated");
     },
-    onError: (error) => {
-      toast.error(`Error updating service: ${error.message}`);
-    },
+    onError: (e: any) => toast.error(`Error updating service: ${e.message}`),
   });
 
-  // Handle API key submission
+  const disconnectMutation = useMutation({
+    mutationFn: (name: string) => aiApi.disconnect(name),
+    onSuccess: () => {
+      invalidate();
+      toast.success("Service disconnected");
+    },
+    onError: (e: any) => toast.error(`Error disconnecting: ${e.message}`),
+  });
+
+  const testMutation = useMutation({
+    mutationFn: (name: string) => aiApi.test(name),
+    onSuccess: (res) => toast.success(`Connection works! Verified with model ${res.model}`),
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const isConnected = (id: string) => connected.some((s) => s.service_name === id);
+  const getService = (id: string): AIServiceRow | undefined =>
+    connected.find((s) => s.service_name === id);
+
   const handleAddApiKey = () => {
     if (!selectedService) return;
-    
-    if (!apiKey || apiKey.trim() === "") {
+    if (!apiKey.trim()) {
       toast.error("Please enter a valid API key");
       return;
     }
-    
-    addApiKeyMutation.mutate({
-      serviceName: selectedService.id,
-      apiKey,
-    });
-  };
-
-  // Handle service toggle
-  const handleToggleService = (service: AIService) => {
-    toggleServiceMutation.mutate({
-      serviceId: service.id,
-      isActive: !service.is_active,
-    });
-  };
-
-  // Check if a service is connected
-  const isServiceConnected = (serviceId: string) => {
-    return connectedServices?.some(s => s.service_name === serviceId) || false;
-  };
-
-  // Get service status
-  const getServiceStatus = (serviceId: string) => {
-    const service = connectedServices?.find(s => s.service_name === serviceId);
-    return service ? service.is_active : false;
-  };
-
-  // Get service record
-  const getServiceRecord = (serviceId: string) => {
-    return connectedServices?.find(s => s.service_name === serviceId) || null;
+    if (selectedService.id === "custom" && (!baseUrl.trim() || !modelName.trim())) {
+      toast.error("Custom providers need a base URL and model name");
+      return;
+    }
+    connectMutation.mutate();
   };
 
   return (
     <div className="container py-8">
       <AdBanner size="small" position="top" className="mb-6" />
-      
+
       <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-3xl font-bold">AI Services</h1>
           <p className="text-muted-foreground">
-            Connect your preferred AI services to power your prompts
+            Generate with the built-in free tier, or connect your own keys (BYOK) for unlimited use.
           </p>
         </div>
-        
-        <Dialog open={isAddingKey} onOpenChange={setIsAddingKey}>
+
+        <Dialog open={isAddingKey} onOpenChange={(open) => {
+          setIsAddingKey(open);
+          if (!open) {
+            setSelectedService(null);
+            setApiKey("");
+            setBaseUrl("");
+            setModelName("");
+          }
+        }}>
           <DialogTrigger asChild>
             <Button className="bg-purple-600 hover:bg-purple-700">
               <KeyRound className="mr-2 h-4 w-4" />
@@ -270,104 +183,89 @@ const AIServicesPage = () => {
             <DialogHeader>
               <DialogTitle>Add API Key</DialogTitle>
               <DialogDescription>
-                Securely store your AI service API key to use with Prompt-Gineer
+                Keys are encrypted on the server and only ever used to call the provider you choose.
               </DialogDescription>
             </DialogHeader>
-            
+
             {!selectedService ? (
-              <div className="grid gap-4 py-4">
-                <p className="mb-2 text-sm">Select an AI service to connect:</p>
-                <div className="grid max-h-[300px] gap-2 overflow-y-auto">
-                  {supportedServices.map((service) => (
+              <div className="grid gap-2 py-2 max-h-[320px] overflow-y-auto">
+                <p className="text-sm mb-1">Select a provider to connect:</p>
+                {providers
+                  .filter((p) => p.id !== "custom")
+                  .map((provider) => (
                     <Button
-                      key={service.id}
+                      key={provider.id}
                       variant="outline"
-                      className="flex w-full justify-start gap-3 text-left"
-                      onClick={() => setSelectedService(service)}
+                      className="flex w-full justify-start gap-3 text-left h-auto py-2"
+                      onClick={() => setSelectedService(provider)}
                     >
-                      <div className="h-6 w-6 overflow-hidden rounded-full">
-                        <img
-                          src={service.logo}
-                          alt={service.name}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                      <span>{service.name}</span>
+                      <ServiceLogo id={provider.id} name={provider.label} />
+                      <span>{provider.label}</span>
                     </Button>
                   ))}
-                </div>
               </div>
             ) : (
-              <div className="grid gap-4 py-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 overflow-hidden rounded-full">
-                    <img
-                      src={selectedService.logo}
-                      alt={selectedService.name}
-                      className="h-full w-full object-cover"
-                    />
+              <div className="grid gap-4 py-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <ServiceLogo id={selectedService.id} name={selectedService.label} />
+                    <span className="font-medium">{selectedService.label}</span>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-medium">{selectedService.name}</h3>
-                    <p className="text-sm text-muted-foreground">{selectedService.description}</p>
-                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => setSelectedService(null)}>
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
-                
+
                 <div className="grid gap-2">
-                  <Label htmlFor="apiKey">{selectedService.apiKeyTitle}</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="apiKey"
-                      type="password"
-                      placeholder="Enter your API key"
-                      value={apiKey}
-                      onChange={(e) => setApiKey(e.target.value)}
-                      className="flex-1"
-                    />
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      type="button"
-                      onClick={() => setSelectedService(null)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <Label htmlFor="apiKey">{selectedService.label} API Key</Label>
+                  <Input
+                    id="apiKey"
+                    type="password"
+                    placeholder="Enter your API key"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    className="flex-1"
+                  />
+                  {selectedService.id === "custom" && (
+                    <>
+                      <Input
+                        placeholder="Base URL, e.g. https://api.example.com/v1"
+                        value={baseUrl}
+                        onChange={(e) => setBaseUrl(e.target.value)}
+                      />
+                      <Input
+                        placeholder="Model name, e.g. my-model"
+                        value={modelName}
+                        onChange={(e) => setModelName(e.target.value)}
+                      />
+                    </>
+                  )}
                   <p className="text-xs text-muted-foreground">
-                    Your API key will be securely stored. We never share your keys.
+                    Encrypted with AES-256-GCM before storage. We never expose your keys.
                   </p>
-                  
-                  <div className="mt-2 flex justify-between">
+                  {selectedService.docs_url && (
                     <Button
                       variant="link"
                       type="button"
-                      className="px-0 text-xs"
-                      onClick={() => window.open(selectedService.authUrl, "_blank")}
+                      className="px-0 text-xs justify-start"
+                      onClick={() => window.open(selectedService.docs_url, "_blank")}
                     >
-                      Get your {selectedService.name} API key →
+                      Get your {selectedService.label} API key →
                     </Button>
-                  </div>
+                  )}
                 </div>
               </div>
             )}
-            
+
             <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setSelectedService(null);
-                  setApiKey("");
-                  setIsAddingKey(false);
-                }}
-              >
+              <Button variant="outline" onClick={() => setIsAddingKey(false)}>
                 Cancel
               </Button>
               <Button
                 onClick={handleAddApiKey}
-                disabled={!selectedService || !apiKey || isLoading}
-                className={!selectedService ? "opacity-50" : ""}
+                disabled={!selectedService || !apiKey || isSubmitting}
               >
-                {isLoading ? (
+                {isSubmitting ? (
                   <>
                     <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                     Connecting...
@@ -383,93 +281,140 @@ const AIServicesPage = () => {
           </DialogContent>
         </Dialog>
       </div>
-      
+
+      {/* Built-in free tier card */}
+      {platform && (
+        <Card className="mb-6 border-purple-300 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950/30 dark:to-indigo-950/30">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-700 flex items-center justify-center text-white">
+                  <Sparkles className="h-5 w-5" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    Built-in Free AI (NVIDIA NIM)
+                    <Badge className="bg-green-600">$0</Badge>
+                  </CardTitle>
+                  <CardDescription>No key needed — works out of the box.</CardDescription>
+                </div>
+              </div>
+              <Badge variant={platform.available ? "default" : "secondary"}>
+                {platform.available ? "Active" : "Unavailable"}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-2">
+              Every signed-in user gets free generations on zero-cost NVIDIA models.
+              {platform.daily_limit !== null && (
+                <>
+                  {" "}
+                  You've used <span className="font-semibold">{platform.used_today}</span> of{" "}
+                  <span className="font-semibold">{platform.daily_limit}</span> today
+                  {platform.remaining_today !== null && platform.remaining_today >= 0 && (
+                    <> — {platform.remaining_today} left.</>
+                  )}
+                </>
+              )}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {platform.models.map((m) => (
+                <Badge key={m} variant="outline" className="font-mono text-xs">
+                  {m}
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Tabs defaultValue="all">
         <TabsList className="mb-6">
-          <TabsTrigger value="all">All Services</TabsTrigger>
+          <TabsTrigger value="all">All Providers</TabsTrigger>
           <TabsTrigger value="connected">Connected</TabsTrigger>
-          <TabsTrigger value="popular">Popular</TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="all">
+
+        {isLoading ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {supportedServices.map((service) => (
-              <ServiceCard
-                key={service.id}
-                service={service}
-                isConnected={isServiceConnected(service.id)}
-                isActive={getServiceStatus(service.id)}
-                serviceRecord={getServiceRecord(service.id)}
-                onConnect={() => {
-                  setSelectedService(service);
-                  setIsAddingKey(true);
-                }}
-                onToggle={handleToggleService}
-              />
+            {[1, 2, 3].map((i) => (
+              <Card key={i}>
+                <CardHeader>
+                  <div className="h-6 w-2/3 animate-pulse rounded bg-muted" />
+                </CardHeader>
+                <CardContent>
+                  <div className="h-16 animate-pulse rounded bg-muted" />
+                </CardContent>
+              </Card>
             ))}
           </div>
-        </TabsContent>
-        
-        <TabsContent value="connected">
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {supportedServices
-              .filter((service) => isServiceConnected(service.id))
-              .map((service) => (
-                <ServiceCard
-                  key={service.id}
-                  service={service}
-                  isConnected={true}
-                  isActive={getServiceStatus(service.id)}
-                  serviceRecord={getServiceRecord(service.id)}
-                  onConnect={() => {
-                    setSelectedService(service);
-                    setIsAddingKey(true);
-                  }}
-                  onToggle={handleToggleService}
-                />
-              ))}
-              
-            {(!connectedServices || connectedServices.length === 0) && (
-              <div className="col-span-full flex flex-col items-center justify-center rounded-lg border border-dashed p-10 text-center">
-                <KeyRound className="mb-4 h-12 w-12 text-muted-foreground" />
-                <h3 className="mb-2 text-xl font-medium">No Connected Services</h3>
-                <p className="mb-4 text-muted-foreground">
-                  Connect your first AI service to start creating prompts
-                </p>
-                <Button
-                  onClick={() => setIsAddingKey(true)}
-                  className="bg-purple-600 hover:bg-purple-700"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Connect Service
-                </Button>
+        ) : (
+          <>
+            <TabsContent value="all">
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {providers
+                  .filter((p) => p.id !== "custom")
+                  .map((provider) => (
+                    <ServiceCard
+                      key={provider.id}
+                      provider={provider}
+                      service={getService(provider.id)}
+                      isConnected={isConnected(provider.id)}
+                      onConnect={() => {
+                        setSelectedService(provider);
+                        setIsAddingKey(true);
+                      }}
+                      onToggle={(active) => toggleMutation.mutate({ name: provider.id, active })}
+                      onDisconnect={() => disconnectMutation.mutate(provider.id)}
+                      onTest={() => testMutation.mutate(provider.id)}
+                      testing={testMutation.isPending}
+                    />
+                  ))}
               </div>
-            )}
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="popular">
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {supportedServices
-              .slice(0, 5)
-              .map((service) => (
-                <ServiceCard
-                  key={service.id}
-                  service={service}
-                  isConnected={isServiceConnected(service.id)}
-                  isActive={getServiceStatus(service.id)}
-                  serviceRecord={getServiceRecord(service.id)}
-                  onConnect={() => {
-                    setSelectedService(service);
-                    setIsAddingKey(true);
-                  }}
-                  onToggle={handleToggleService}
-                />
-              ))}
-          </div>
-        </TabsContent>
+            </TabsContent>
+
+            <TabsContent value="connected">
+              {connected.length === 0 ? (
+                <div className="col-span-full flex flex-col items-center justify-center rounded-lg border border-dashed p-10 text-center">
+                  <KeyRound className="mb-4 h-12 w-12 text-muted-foreground" />
+                  <h3 className="mb-2 text-xl font-medium">No Connected Services</h3>
+                  <p className="mb-4 text-muted-foreground">
+                    You're using the built-in free tier. Connect your own key for unlimited generations.
+                  </p>
+                  <Button onClick={() => setIsAddingKey(true)} className="bg-purple-600 hover:bg-purple-700">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Connect Service
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {connected.map((svc) => {
+                    const provider = providers.find((p) => p.id === svc.service_name);
+                    if (!provider) return null;
+                    return (
+                      <ServiceCard
+                        key={svc.service_name}
+                        provider={provider}
+                        service={svc}
+                        isConnected
+                        onConnect={() => {
+                          setSelectedService(provider);
+                          setIsAddingKey(true);
+                        }}
+                        onToggle={(active) => toggleMutation.mutate({ name: svc.service_name, active })}
+                        onDisconnect={() => disconnectMutation.mutate(svc.service_name)}
+                        onTest={() => testMutation.mutate(svc.service_name)}
+                        testing={testMutation.isPending}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </TabsContent>
+          </>
+        )}
       </Tabs>
-      
+
       <div className="mt-8">
         <h2 className="mb-4 text-2xl font-bold">Understanding API Keys</h2>
         <Card>
@@ -481,23 +426,22 @@ const AIServicesPage = () => {
                   Security Information
                 </h3>
                 <ul className="ml-6 list-disc space-y-1 text-muted-foreground">
-                  <li>API keys are encrypted before storage</li>
-                  <li>Keys are never exposed in client-side code</li>
-                  <li>You can disable any connected service at any time</li>
-                  <li>Keys are used only for the services you explicitly request</li>
+                  <li>API keys are encrypted (AES-256-GCM) before storage</li>
+                  <li>Keys are never sent back to the browser</li>
+                  <li>You can disable or remove any service at any time</li>
+                  <li>Keys are only used for the provider you connect</li>
                 </ul>
               </div>
-              
               <div className="flex-1 space-y-2">
                 <h3 className="flex items-center gap-2 text-lg font-medium">
                   <Settings className="h-5 w-5 text-blue-500" />
                   Usage Information
                 </h3>
                 <ul className="ml-6 list-disc space-y-1 text-muted-foreground">
-                  <li>API usage is billed by the respective service providers</li>
-                  <li>Check your service dashboard for usage metrics</li>
-                  <li>Set usage limits on your provider's platform</li>
-                  <li>Use our logs to monitor your API calls</li>
+                  <li>The free tier has a daily generation limit</li>
+                  <li>Your own keys bypass the free limit entirely</li>
+                  <li>Provider billing is handled by each provider</li>
+                  <li>Use "Test" to verify a key before relying on it</li>
                 </ul>
               </div>
             </div>
@@ -508,69 +452,77 @@ const AIServicesPage = () => {
   );
 };
 
-// Service Card Component
 interface ServiceCardProps {
-  service: SupportedAIService;
+  provider: AIProviderInfo;
+  service?: AIServiceRow;
   isConnected: boolean;
-  isActive: boolean;
-  serviceRecord: AIService | null;
   onConnect: () => void;
-  onToggle: (service: AIService) => void;
+  onToggle: (active: boolean) => void;
+  onDisconnect: () => void;
+  onTest: () => void;
+  testing: boolean;
 }
 
 const ServiceCard = ({
+  provider,
   service,
   isConnected,
-  isActive,
-  serviceRecord,
   onConnect,
   onToggle,
+  onDisconnect,
+  onTest,
+  testing,
 }: ServiceCardProps) => {
+  const meta = SERVICE_META[provider.id];
   return (
     <Card className="overflow-hidden">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 overflow-hidden rounded-full">
-              <img
-                src={service.logo}
-                alt={service.name}
-                className="h-full w-full object-cover"
-              />
-            </div>
-            <CardTitle className="text-lg">{service.name}</CardTitle>
+            <ServiceLogo id={provider.id} name={provider.label} />
+            <CardTitle className="text-lg">{provider.label}</CardTitle>
           </div>
           {isConnected && (
-            <Badge variant={isActive ? "default" : "outline"}>
-              {isActive ? "Active" : "Inactive"}
+            <Badge variant={service?.is_active ? "default" : "outline"}>
+              {service?.is_active ? "Active" : "Inactive"}
             </Badge>
           )}
         </div>
       </CardHeader>
       <CardContent>
         <CardDescription className="mb-4 text-sm">
-          {service.description}
+          {meta?.blurb ?? `Connect ${provider.label} with your own API key.`}
         </CardDescription>
-        {isConnected && serviceRecord && (
+        {isConnected && service && (
           <div className="mb-4 flex items-center justify-between rounded-lg border bg-muted p-3">
             <span className="text-sm font-medium">Enable this service</span>
-            <Switch
-              checked={isActive}
-              onCheckedChange={() => onToggle(serviceRecord)}
-            />
+            <Switch checked={service.is_active} onCheckedChange={onToggle} />
           </div>
         )}
       </CardContent>
       <CardFooter className="bg-muted pt-2">
         <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <Button
-            variant="link"
-            className="h-auto p-0 text-xs"
-            onClick={() => window.open(service.authUrl, "_blank")}
-          >
-            View API Docs
-          </Button>
-          
+          {isConnected ? (
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={onTest} disabled={testing}>
+                <FlaskConical className="mr-1 h-3.5 w-3.5" />
+                Test
+              </Button>
+              <Button variant="ghost" size="sm" className="text-red-600" onClick={onDisconnect}>
+                <Trash2 className="mr-1 h-3.5 w-3.5" />
+                Remove
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="link"
+              className="h-auto p-0 text-xs"
+              onClick={() => provider.docs_url && window.open(provider.docs_url, "_blank")}
+            >
+              View API Docs
+            </Button>
+          )}
+
           <Button
             variant={isConnected ? "outline" : "default"}
             onClick={onConnect}

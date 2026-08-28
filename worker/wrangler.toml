@@ -1,0 +1,38 @@
+# Prompt-Gineer API — Cloudflare Worker
+#
+# Deploy steps (see ../README.md for the full guide):
+#   1. npm install
+#   2. npm run db:create               -> copies a database_id into this file
+#   3. npm run db:init:remote          -> creates tables + seed data
+#   4. npx wrangler secret put KEY_ENCRYPTION_SECRET   (any long random string)
+#   5. npm run deploy
+#
+# The NVIDIA_API_KEY below is the platform "zero cost" key used for the free
+# NVIDIA NIM tier (https://build.nvidia.com). It can be rotated at any time
+# with:  npx wrangler secret put NVIDIA_API_KEY  (secrets override vars).
+
+name = "prompt-gineer-api"
+main = "src/index.ts"
+compatibility_date = "2025-05-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "prompt-gineer-db"
+database_id = "00000000-0000-0000-0000-000000000000"
+
+[vars]
+# Comma-separated list of allowed browser origins, or "*" for any origin.
+ALLOWED_ORIGINS = "*"
+# Users signing up with one of these emails are granted the admin role.
+ADMIN_EMAILS = ""
+# How many free platform-AI generations a non-premium user gets per day.
+FREE_DAILY_LIMIT = "5"
+# Comma-separated fallback chain of zero-cost NVIDIA NIM models.
+NVIDIA_MODELS = "meta/llama-3.1-8b-instruct,mistralai/mistral-7b-instruct-v0.3,meta/llama-3.3-70b-instruct,nvidia/llama-3.1-nemotron-70b-instruct"
+NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1"
+# Platform AI key (free NVIDIA NIM tier). Prefer `wrangler secret put NVIDIA_API_KEY`
+# for production; a secret with this name overrides the var below.
+NVIDIA_API_KEY = "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"
+
+[observability]
+enabled = true

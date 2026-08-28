@@ -26,8 +26,6 @@ import {
   UserCog,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import AdBanner from "@/components/ads/AdBanner";
 
 interface PageLayoutProps {
@@ -39,30 +37,8 @@ export default function PageLayout({ children }: PageLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
-  const [isAdmin, setIsAdmin] = React.useState(false);
 
-  const { data: userRole } = useQuery({
-    queryKey: ["user-role", user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-      
-      if (error) return null;
-      return data;
-    },
-    enabled: !!user,
-  });
-
-  React.useEffect(() => {
-    if (userRole) {
-      setIsAdmin(userRole.role === "admin");
-    }
-  }, [userRole]);
+  const isAdmin = user?.role === "admin";
 
   const handleSignOut = async () => {
     try {
@@ -138,9 +114,9 @@ export default function PageLayout({ children }: PageLayoutProps) {
                     className="relative w-8 h-8 rounded-full"
                   >
                     <Avatar className="w-8 h-8">
-                      <AvatarImage src="" />
+                      <AvatarImage src={user.avatar_url || ""} />
                       <AvatarFallback>
-                        {user.email?.[0]?.toUpperCase() || "U"}
+                        {(user.full_name || user.email)?.[0]?.toUpperCase() || "U"}
                       </AvatarFallback>
                     </Avatar>
                   </Button>

@@ -35,7 +35,7 @@ const LandingPage = () => {
             <div className="flex flex-col space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0">
               {user ? (
                 <Button asChild size="lg" className="bg-purple-600 hover:bg-purple-700">
-                  <Link to="/">
+                  <Link to="/dashboard">
                     Go to Dashboard 
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>

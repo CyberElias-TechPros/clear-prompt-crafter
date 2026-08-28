@@ -1,170 +1,98 @@
-
-import React, { useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { useQueryClient, useMutation } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { UserSettings } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import { Label } from "@/components/ui/label";
 
-interface SettingsFormProps {
-  initialSettings: UserSettings | null;
-  isLoading: boolean;
-}
+export function SettingsForm() {
+  const { user, updateUser } = useAuth();
 
-export function SettingsForm({ initialSettings, isLoading }: SettingsFormProps) {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
-  
-  const form = useForm<Partial<UserSettings>>({
-    defaultValues: {
-      allow_learning: initialSettings?.allow_learning || false,
-      theme: initialSettings?.theme || 'light',
-    },
-  });
-
-  // Update form values when initialSettings changes
-  useEffect(() => {
-    if (initialSettings) {
-      form.reset({
-        allow_learning: initialSettings.allow_learning,
-        theme: initialSettings.theme,
-      });
-    }
-  }, [initialSettings, form]);
-
-  const updateSettingsMutation = useMutation({
-    mutationFn: async (settings: Partial<UserSettings>) => {
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-user-settings`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-        },
-        body: JSON.stringify({ settings }),
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to update settings');
-      }
-      
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["userSettings", user?.id] });
+  const handleToggleLearning = async (checked: boolean) => {
+    try {
+      await updateUser({ allow_learning: checked });
       toast({
-        title: "Settings updated",
-        description: "Your settings have been updated successfully.",
+        title: checked ? "Learning enabled" : "Learning disabled",
+        description: checked
+          ? "We'll use your prompts to improve our AI suggestions."
+          : "Your prompts won't be used for learning.",
       });
-    },
-    onError: (error) => {
-      console.error("Error updating settings:", error);
+    } catch (error: any) {
       toast({
         title: "Update failed",
-        description: "There was an error updating your settings. Please try again.",
+        description: error?.message || "Please try again.",
         variant: "destructive",
       });
-    },
-  });
+    }
+  };
 
-  function onSubmit(data: Partial<UserSettings>) {
-    updateSettingsMutation.mutate(data);
-  }
+  const handleTheme = async (theme: "light" | "dark" | "system") => {
+    try {
+      await updateUser({ theme });
+      toast({ title: "Theme updated", description: `Default theme set to ${theme}.` });
+    } catch (error: any) {
+      toast({
+        title: "Update failed",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div>
-          <h2 className="text-xl font-semibold mb-1">Privacy Settings</h2>
+    <form className="space-y-6">
+      <div>
+        <h2 className="text-xl font-semibold mb-1">Privacy Settings</h2>
+        <p className="text-sm text-muted-foreground">
+          Control your privacy and data preferences
+        </p>
+      </div>
+
+      <Separator />
+
+      <div className="flex flex-row items-center justify-between rounded-lg border p-4">
+        <div className="space-y-0.5">
+          <Label className="text-base">Allow AI Learning</Label>
           <p className="text-sm text-muted-foreground">
-            Control your privacy and data preferences
+            Let us use your prompts to improve our AI systems
           </p>
         </div>
-        
-        <Separator />
-        
-        <FormField
-          control={form.control}
-          name="allow_learning"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-              <div className="space-y-0.5">
-                <FormLabel className="text-base">Allow AI Learning</FormLabel>
-                <FormDescription>
-                  Let us use your prompts to improve our AI systems
-                </FormDescription>
-              </div>
-              <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                  disabled={isLoading}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="theme"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-              <div className="space-y-0.5">
-                <FormLabel className="text-base">Default Theme</FormLabel>
-                <FormDescription>
-                  Set your preferred default theme
-                </FormDescription>
-              </div>
-              <FormControl>
-                <div className="flex space-x-2">
-                  <Button 
-                    type="button"
-                    size="sm"
-                    variant={field.value === 'light' ? 'default' : 'outline'}
-                    onClick={() => field.onChange('light')}
-                    disabled={isLoading}
-                  >
-                    Light
-                  </Button>
-                  <Button 
-                    type="button"
-                    size="sm"
-                    variant={field.value === 'dark' ? 'default' : 'outline'}
-                    onClick={() => field.onChange('dark')}
-                    disabled={isLoading}
-                  >
-                    Dark
-                  </Button>
-                  <Button 
-                    type="button"
-                    size="sm"
-                    variant={field.value === 'system' ? 'default' : 'outline'}
-                    onClick={() => field.onChange('system')}
-                    disabled={isLoading}
-                  >
-                    System
-                  </Button>
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <Button 
-          type="submit" 
-          disabled={isLoading || updateSettingsMutation.isPending}
-          className="w-full sm:w-auto"
-        >
-          {updateSettingsMutation.isPending ? "Saving..." : "Save Settings"}
-        </Button>
-      </form>
-    </Form>
+        <Switch checked={!!user?.allow_learning} onCheckedChange={handleToggleLearning} />
+      </div>
+
+      <div className="flex flex-row items-center justify-between rounded-lg border p-4">
+        <div className="space-y-0.5">
+          <Label className="text-base">Default Theme</Label>
+          <p className="text-sm text-muted-foreground">Set your preferred default theme</p>
+        </div>
+        <div className="flex space-x-2">
+          <Button
+            type="button"
+            size="sm"
+            variant={user?.theme === "light" ? "default" : "outline"}
+            onClick={() => handleTheme("light")}
+          >
+            Light
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={user?.theme === "dark" ? "default" : "outline"}
+            onClick={() => handleTheme("dark")}
+          >
+            Dark
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={user?.theme === "system" ? "default" : "outline"}
+            onClick={() => handleTheme("system")}
+          >
+            System
+          </Button>
+        </div>
+      </div>
+    </form>
   );
 }

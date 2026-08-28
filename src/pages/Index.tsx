@@ -1,8 +1,5 @@
-
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import MainLayout from "@/components/layout/MainLayout";
 import Header from "@/components/prompt-generator/Header";
@@ -10,7 +7,6 @@ import StructuredPrompt from "@/components/prompt-generator/StructuredPrompt";
 import ConversationalPrompt from "@/components/prompt-generator/ConversationalPrompt";
 import MetaPrompt from "@/components/prompt-generator/MetaPrompt";
 import PromptGuidelineCard from "@/components/prompt-guidelines/PromptGuidelineCard";
-import { UserSettings } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -20,21 +16,27 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { HelpCircle } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
+const LEARNING_DIALOG_KEY = "pg_learning_dialog_shown";
+
 const Index = () => {
   const [activeTab, setActiveTab] = useState("structured");
-  const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showLearningDialog, setShowLearningDialog] = useState(false);
+  const [showLearningDialog, setShowLearningDialog] = useState(() => {
+    try {
+      return !localStorage.getItem(LEARNING_DIALOG_KEY);
+    } catch {
+      return false;
+    }
+  });
+  const [learningChoice, setLearningChoice] = useState(true);
   const [showGuidelines, setShowGuidelines] = useState(false);
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
-  
+
   const guidelines = {
     debuggingBestPractices: {
       title: "Debugging Best Practices",
@@ -44,9 +46,9 @@ const Index = () => {
         "Break down complex problems into smaller, manageable steps",
         "Use clear, unambiguous language in your prompts",
         "Include relevant context and constraints",
-        "Specify the desired outcome explicitly"
+        "Specify the desired outcome explicitly",
       ],
-      variant: "debug"
+      variant: "debug",
     },
     promptEngineeringGuidelines: {
       title: "Prompt Engineering Guidelines",
@@ -56,9 +58,9 @@ const Index = () => {
         "Define tasks with measurable outcomes",
         "Include specific guidelines and constraints",
         "Consider error handling and edge cases",
-        "Review and iterate on your prompts"
+        "Review and iterate on your prompts",
       ],
-      variant: "tip"
+      variant: "tip",
     },
     debuggingWorkflows: {
       title: "Debugging Workflows",
@@ -68,9 +70,9 @@ const Index = () => {
         "Use the console logs to understand how data is flowing through your application",
         "Isolate the problem area before attempting fixes",
         "For complex bugs, create a minimal reproducible example",
-        "Add 'console.log' statements strategically to track the execution flow"
+        "Add 'console.log' statements strategically to track the execution flow",
       ],
-      variant: "warning"
+      variant: "warning",
     },
     promptRefinementTechniques: {
       title: "Prompt Refinement Techniques",
@@ -80,73 +82,34 @@ const Index = () => {
         "Use the CLEAR framework: Concise, Logical, Explicit, Adaptive, Reflective",
         "For code generation, specify exact function signatures and return types",
         "Include examples of expected inputs and outputs for better understanding",
-        "When refactoring, explicitly mention what should NOT change"
+        "When refactoring, explicitly mention what should NOT change",
       ],
-      variant: "success"
-    }
-  };
-
-  useEffect(() => {
-    const fetchUserSettings = async () => {
-      if (!user) return;
-
-      try {
-        const { data, error } = await supabase
-          .from("user_settings")
-          .select("*")
-          .eq("user_id", user.id)
-          .single();
-
-        if (error && error.code !== "PGRST116") {
-          throw error;
-        }
-
-        setUserSettings(data);
-        
-        // Show learning dialog if setting not yet configured
-        if (data && !data.allow_learning) {
-          setShowLearningDialog(true);
-        }
-      } catch (error: any) {
-        console.error("Error fetching user settings:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchUserSettings();
-  }, [user]);
+      variant: "success",
+    },
+  } as const;
 
   const handleLearningPermission = async (allow: boolean) => {
-    if (!user || !userSettings) return;
-    
     try {
-      const { error } = await supabase
-        .from("user_settings")
-        .update({ allow_learning: allow })
-        .eq("user_id", user.id);
-
-      if (error) throw error;
-
-      setUserSettings({
-        ...userSettings,
-        allow_learning: allow,
-      });
-
+      if (user) await updateUser({ allow_learning: allow });
       toast({
         title: allow ? "Learning enabled" : "Learning disabled",
         description: allow
           ? "We'll learn from your history to provide better suggestions."
           : "We won't use your history for learning.",
       });
-      
-      setShowLearningDialog(false);
     } catch (error: any) {
       toast({
         title: "Error updating settings",
-        description: error.message,
+        description: error?.message ?? "Please try again.",
         variant: "destructive",
       });
+    } finally {
+      try {
+        localStorage.setItem(LEARNING_DIALOG_KEY, "1");
+      } catch {
+        /* no-op */
+      }
+      setShowLearningDialog(false);
     }
   };
 
@@ -156,9 +119,9 @@ const Index = () => {
         <div className="container px-4 py-2">
           <div className="flex justify-between items-center mb-2">
             <Header activeTab={activeTab} setActiveTab={setActiveTab} />
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setShowGuidelines(!showGuidelines)}
               className="flex items-center gap-1"
             >
@@ -170,28 +133,28 @@ const Index = () => {
           <Collapsible open={showGuidelines} onOpenChange={setShowGuidelines} className="mb-4">
             <CollapsibleContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2 pb-6">
-                <PromptGuidelineCard 
+                <PromptGuidelineCard
                   title={guidelines.debuggingBestPractices.title}
                   description={guidelines.debuggingBestPractices.description}
-                  content={guidelines.debuggingBestPractices.content}
+                  content={[...guidelines.debuggingBestPractices.content]}
                   variant="debug"
                 />
-                <PromptGuidelineCard 
+                <PromptGuidelineCard
                   title={guidelines.promptEngineeringGuidelines.title}
                   description={guidelines.promptEngineeringGuidelines.description}
-                  content={guidelines.promptEngineeringGuidelines.content}
+                  content={[...guidelines.promptEngineeringGuidelines.content]}
                   variant="tip"
                 />
-                <PromptGuidelineCard 
+                <PromptGuidelineCard
                   title={guidelines.debuggingWorkflows.title}
                   description={guidelines.debuggingWorkflows.description}
-                  content={guidelines.debuggingWorkflows.content}
+                  content={[...guidelines.debuggingWorkflows.content]}
                   variant="warning"
                 />
-                <PromptGuidelineCard 
+                <PromptGuidelineCard
                   title={guidelines.promptRefinementTechniques.title}
                   description={guidelines.promptRefinementTechniques.description}
-                  content={guidelines.promptRefinementTechniques.content}
+                  content={[...guidelines.promptRefinementTechniques.content]}
                   variant="success"
                 />
               </div>
@@ -206,29 +169,38 @@ const Index = () => {
             {activeTab === "meta" && <MetaPrompt />}
           </div>
         </main>
-        
-        <Dialog open={showLearningDialog} onOpenChange={setShowLearningDialog}>
+
+        <Dialog open={showLearningDialog} onOpenChange={(open) => {
+          if (!open) {
+            try {
+              localStorage.setItem(LEARNING_DIALOG_KEY, "1");
+            } catch {
+              /* no-op */
+            }
+          }
+          setShowLearningDialog(open);
+        }}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Enhance Your Experience</DialogTitle>
               <DialogDescription>
-                Would you like to enable learning from your prompt history? 
-                This helps us provide better suggestions based on your previous prompts.
+                Would you like to enable learning from your prompt history? This helps us provide
+                better suggestions based on your previous prompts.
               </DialogDescription>
             </DialogHeader>
             <div className="flex items-center space-x-2 py-4">
-              <Switch id="learning-mode" />
+              <Switch
+                id="learning-mode"
+                checked={learningChoice}
+                onCheckedChange={(checked) => setLearningChoice(checked)}
+              />
               <Label htmlFor="learning-mode">Enable personalized suggestions</Label>
             </div>
             <DialogFooter className="flex flex-col sm:flex-row sm:justify-between sm:space-x-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleLearningPermission(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => handleLearningPermission(false)}>
                 No thanks
               </Button>
-              <Button type="button" onClick={() => handleLearningPermission(true)}>
+              <Button type="button" onClick={() => handleLearningPermission(learningChoice)}>
                 Enable learning
               </Button>
             </DialogFooter>
