@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, BarChart3, Clock3, FileText, Plus, Sparkles, TrendingUp, Users } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -6,19 +6,34 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PromptBuilder } from "@/components/prompt-generator";
 import { getAllPrompts, type PromptRecord } from "@/lib/demo-data";
+import { apiGet, apiPromptToRecord, isApiConfigured, type MeResponse, type PromptListResponse } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import Seo from "@/components/Seo";
 
 export default function DashboardPage() {
   const { user, isDemo } = useAuth();
-  const [recentPrompts, setRecentPrompts] = useState<PromptRecord[]>(() => getAllPrompts().slice(0, 3));
+  const [recentPrompts, setRecentPrompts] = useState<PromptRecord[]>(() => isApiConfigured ? [] : getAllPrompts().slice(0, 3));
+  const [stats, setStats] = useState({ prompts: 12, publicPrompts: 6, points: 248 });
   const displayName = user?.user_metadata?.full_name?.split(" ")[0] || "there";
 
+  useEffect(() => {
+    if (!isApiConfigured) return;
+    let active = true;
+    void Promise.all([apiGet<PromptListResponse>("/me/prompts?limit=3"), apiGet<MeResponse>("/me")])
+      .then(([promptResponse, meResponse]) => {
+        if (!active) return;
+        setRecentPrompts(promptResponse.prompts.map(apiPromptToRecord));
+        setStats(meResponse.stats);
+      })
+      .catch(() => { /* The workspace remains usable; the API error is shown by the individual action. */ });
+    return () => { active = false; };
+  }, []);
+
   const metrics = useMemo(() => [
-    { label: "Prompt systems", value: "12", delta: "+3 this week", icon: FileText, tone: "teal" },
-    { label: "Avg. clarity score", value: "86%", delta: "+8% this month", icon: TrendingUp, tone: "gold" },
-    { label: "Library saves", value: "248", delta: "+24 this week", icon: BarChart3, tone: "violet" },
-  ], []);
+    { label: "Prompt systems", value: String(stats.prompts), delta: `${stats.publicPrompts} published`, icon: FileText, tone: "teal" },
+    { label: "Clarity points", value: String(stats.points), delta: "Account activity", icon: TrendingUp, tone: "gold" },
+    { label: "Public systems", value: String(stats.publicPrompts), delta: "Visible in library", icon: BarChart3, tone: "violet" },
+  ], [stats]);
 
   const handleSaved = (prompt: PromptRecord) => setRecentPrompts((current) => [prompt, ...current.filter((item) => item.id !== prompt.id)].slice(0, 3));
 

@@ -1,0 +1,12 @@
+# Copy to workers/api/.dev.vars for local Worker development. Never commit the copy.
+APP_ORIGIN=http://localhost:8080
+APP_URL=http://localhost:8080
+API_URL=http://localhost:8787
+REQUIRE_EMAIL_VERIFICATION=false
+SESSION_DAYS=14
+# Add provider/email secrets only when you intend to exercise those paths locally.
+# RESEND_API_KEY=
+# EMAIL_FROM=Prompt-Gineer <noreply@example.com>
+# OPENAI_API_KEY=
+# ANTHROPIC_API_KEY=
+# GOOGLE_AI_API_KEY=

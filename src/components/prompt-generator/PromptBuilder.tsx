@@ -27,6 +27,8 @@ import {
   type PromptRecord,
   type PromptSections,
 } from "@/lib/demo-data";
+import { apiPost, apiPromptToRecord, isApiConfigured, type ApiPrompt } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface PromptBuilderProps {
   compact?: boolean;
@@ -69,6 +71,7 @@ export default function PromptBuilder({ compact = false, onSaved }: PromptBuilde
   const [mode, setMode] = useState<PromptMode>("structured");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [isPublic, setIsPublic] = useState(false);
   const [sections, setSections] = useState<PromptSections>(starterSections);
   const [roughDraft, setRoughDraft] = useState("");
   const [conversationInput, setConversationInput] = useState("");
@@ -76,6 +79,8 @@ export default function PromptBuilder({ compact = false, onSaved }: PromptBuilde
     { from: "studio", text: "Tell me what you want to make. I’ll help you find the role, outcome, and guardrails hiding inside the idea." },
   ]);
   const [isAnalyzed, setIsAnalyzed] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const { isDemo } = useAuth();
 
   const { filled, words, score } = useMemo(() => scoreSections(sections), [sections]);
   const prompt = useMemo(() => composePrompt(sections), [sections]);
@@ -95,7 +100,7 @@ export default function PromptBuilder({ compact = false, onSaved }: PromptBuilde
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!title.trim()) {
       toast.error("Give this prompt a working title first.");
       return;
@@ -104,32 +109,55 @@ export default function PromptBuilder({ compact = false, onSaved }: PromptBuilde
       toast.error("Add an objective so the prompt has a clear job to do.");
       return;
     }
-    const now = new Date().toISOString();
-    const saved: PromptRecord = {
-      id: createPromptId(),
-      title: title.trim(),
-      description: description.trim() || "A prompt system built in Prompt-Gineer.",
-      mode,
-      sections,
-      content: prompt,
-      category: "Software & product",
-      tags: [mode, "clear prompting"],
-      author: "Alex Morgan",
-      authorInitials: "AM",
-      isPublic: false,
-      likes: 0,
-      views: 0,
-      createdAt: now,
-      updatedAt: now,
-    };
-    savePrompt(saved);
-    onSaved?.(saved);
-    toast.success("Prompt saved to your library");
+    setSaving(true);
+    try {
+      if (isApiConfigured && !isDemo) {
+        const response = await apiPost<{ prompt: ApiPrompt }>("/prompts", {
+          title: title.trim(),
+          description: description.trim() || "A prompt system built in Prompt-Gineer.",
+          mode,
+          sections,
+          category: "Software & product",
+          tags: [mode, "clear prompting"],
+          isPublic,
+        });
+        const saved = apiPromptToRecord(response.prompt);
+        onSaved?.(saved);
+        toast.success("Prompt saved to your account");
+        return;
+      }
+      const now = new Date().toISOString();
+      const saved: PromptRecord = {
+        id: createPromptId(),
+        title: title.trim(),
+        description: description.trim() || "A prompt system built in Prompt-Gineer.",
+        mode,
+        sections,
+        content: prompt,
+        category: "Software & product",
+        tags: [mode, "clear prompting"],
+        author: "Alex Morgan",
+        authorInitials: "AM",
+        isPublic,
+        likes: 0,
+        views: 0,
+        createdAt: now,
+        updatedAt: now,
+      };
+      savePrompt(saved);
+      onSaved?.(saved);
+      toast.success("Prompt saved to this demo browser");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to save this prompt.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const reset = () => {
     setTitle("");
     setDescription("");
+    setIsPublic(false);
     setSections(emptySections);
     setRoughDraft("");
     setIsAnalyzed(false);
@@ -175,7 +203,7 @@ export default function PromptBuilder({ compact = false, onSaved }: PromptBuilde
     <div className={compact ? "" : "page-enter"}>
       <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div><p className="eyebrow">Prompt studio / draft {score}% clear</p><h1 className="display-font mt-2 text-4xl font-semibold leading-none tracking-tight sm:text-5xl">Make the ask make sense.</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">Start with intent. Prompt-Gineer gives it just enough structure to travel well between people, models, and moments.</p></div>
-        <div className="flex items-center gap-2"><Button onClick={reset} variant="outline" size="sm"><RotateCcw className="h-3.5 w-3.5" /> Reset</Button><Button onClick={handleSave} size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90"><Save className="h-3.5 w-3.5" /> Save prompt</Button></div>
+        <div className="flex items-center gap-2"><Button onClick={reset} variant="outline" size="sm"><RotateCcw className="h-3.5 w-3.5" /> Reset</Button><Button onClick={() => void handleSave()} disabled={saving} size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90"><Save className="h-3.5 w-3.5" /> {saving ? "Saving..." : "Save prompt"}</Button></div>
       </div>
 
       <div className="mb-5 grid gap-2 rounded-2xl border bg-card p-2 sm:grid-cols-3">
@@ -186,7 +214,7 @@ export default function PromptBuilder({ compact = false, onSaved }: PromptBuilde
         <section className="surface overflow-hidden rounded-2xl">
           <div className="border-b bg-secondary/30 px-5 py-4 sm:px-6"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-bold">The thinking layer</p><p className="mt-1 text-xs text-muted-foreground">Good prompts are designed, not discovered by accident.</p></div><div className="flex items-center gap-2"><Badge variant="outline" className="border-accent/30 bg-accent/5 text-accent"><span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-accent" /> {filled}/6 sections</Badge><span className="text-xs text-muted-foreground">{words} words</span></div></div></div>
           <div className="p-5 sm:p-6">
-            <div className="mb-6 grid gap-4 sm:grid-cols-2"><label className="block"><span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">Working title <span className="text-accent">*</span></span><Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Launch brief copilot" className="h-11 rounded-xl bg-background" /></label><label className="block"><span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">One-line intent</span><Input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="What will this help you do?" className="h-11 rounded-xl bg-background" /></label></div>
+            <div className="mb-6 grid gap-4 sm:grid-cols-2"><label className="block"><span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">Working title <span className="text-accent">*</span></span><Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Launch brief copilot" className="h-11 rounded-xl bg-background" /></label><label className="block"><span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">One-line intent</span><Input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="What will this help you do?" className="h-11 rounded-xl bg-background" /></label><label className="flex items-center gap-3 rounded-xl border bg-background/60 px-3 py-2.5 text-xs font-semibold text-muted-foreground sm:col-span-2"><input type="checkbox" checked={isPublic} onChange={(event) => setIsPublic(event.target.checked)} className="h-4 w-4 rounded border-border accent-accent" /> Publish this prompt to the community library <span className="font-normal text-muted-foreground/75">(you can change it later)</span></label></div>
 
             {mode === "structured" && <div className="grid gap-4 sm:grid-cols-2">{sectionMeta.map((section) => { const Icon = section.icon; return <label key={section.key} className="group block rounded-2xl border bg-background/60 p-4 transition-colors focus-within:border-accent/60"><div className="mb-3 flex items-start justify-between"><div className="flex items-center gap-2.5"><span className="flex h-8 w-8 items-center justify-center rounded-xl" style={{ backgroundColor: `${section.accent}14`, color: section.accent }}><Icon className="h-4 w-4" /></span><span><span className="block text-sm font-bold">{section.label}</span><span className="block text-[0.65rem] text-muted-foreground">{section.kicker}</span></span></div>{sections[section.key].trim() && <Check className="mt-1 h-4 w-4 text-accent" />}</div><p className="mb-2 text-xs font-medium text-muted-foreground">{section.hint}</p><Textarea value={sections[section.key]} onChange={(event) => updateSection(section.key, event.target.value)} placeholder={section.placeholder} className="min-h-[104px] resize-y rounded-xl border-border/80 bg-card text-sm leading-6 shadow-none focus-visible:ring-accent" /></label>; })}</div>}
 
@@ -196,7 +224,7 @@ export default function PromptBuilder({ compact = false, onSaved }: PromptBuilde
           </div>
         </section>
 
-        <aside className="min-w-0"><div className="sticky top-[96px] overflow-hidden rounded-2xl bg-primary text-primary-foreground shadow-xl"><div className="blueprint-grid relative border-b border-white/10 px-5 py-5 sm:px-6"><div className="absolute right-5 top-4 h-16 w-16 rounded-full bg-accent/20 blur-2xl" /><div className="relative flex items-center justify-between"><div><p className="text-[0.65rem] font-bold uppercase tracking-[0.18em] text-accent">Live preview</p><h2 className="display-font mt-1 text-2xl font-semibold">Your prompt system</h2></div><div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/10"><FileText className="h-4 w-4 text-accent" /></div></div><div className="relative mt-4 flex items-center gap-3"><div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-accent transition-all duration-500" style={{ width: `${Math.max(score, 4)}%` }} /></div><span className="text-xs font-bold text-accent">{score}%</span></div></div><div className="max-h-[540px] overflow-y-auto p-5 sm:p-6"><div className="min-h-[300px] rounded-2xl border border-white/10 bg-white/[.055] p-4 font-mono text-[0.72rem] leading-6 text-slate-300 sm:p-5">{prompt ? prompt.split("\n\n").map((block, index) => { const [label, ...body] = block.split("\n"); return <div key={`${label}-${index}`} className="mb-5 last:mb-0"><p className="mb-1 text-[0.62rem] font-bold tracking-[0.14em] text-accent">{label}</p><p className="whitespace-pre-wrap">{body.join("\n")}</p></div>; }) : <div className="flex min-h-[280px] flex-col items-center justify-center text-center text-slate-500"><FileText className="mb-3 h-7 w-7" /><p className="font-sans text-sm font-semibold">Your words will land here.</p><p className="mt-1 max-w-[210px] font-sans text-xs leading-5">Fill the thinking layer and watch the prompt take shape.</p></div>}</div><div className="mt-4 flex flex-col gap-2 sm:flex-row"><Button onClick={handleCopy} variant="outline" className="flex-1 border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"><Clipboard className="h-4 w-4" /> Copy prompt</Button><Button onClick={handleSave} className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90"><Save className="h-4 w-4" /> Save to library</Button></div><div className="mt-4 flex items-center gap-2 border-t border-white/10 pt-4 text-xs text-slate-400"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#55e0bd]/15 text-[#79edd0]"><Check className="h-3 w-3" /></span> Nothing is sent anywhere in this demo workspace.</div></div></div><div className="mt-4 rounded-2xl border border-dashed bg-card p-4"><div className="flex items-start gap-3"><Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-[#c0832c]" /><div><p className="text-sm font-bold">A small prompt heuristic</p><p className="mt-1 text-xs leading-5 text-muted-foreground">If the result could apply to anyone, add one detail about your audience, environment, or definition of done.</p></div></div></div></aside>
+        <aside className="min-w-0"><div className="sticky top-[96px] overflow-hidden rounded-2xl bg-primary text-primary-foreground shadow-xl"><div className="blueprint-grid relative border-b border-white/10 px-5 py-5 sm:px-6"><div className="absolute right-5 top-4 h-16 w-16 rounded-full bg-accent/20 blur-2xl" /><div className="relative flex items-center justify-between"><div><p className="text-[0.65rem] font-bold uppercase tracking-[0.18em] text-accent">Live preview</p><h2 className="display-font mt-1 text-2xl font-semibold">Your prompt system</h2></div><div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/10"><FileText className="h-4 w-4 text-accent" /></div></div><div className="relative mt-4 flex items-center gap-3"><div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-accent transition-all duration-500" style={{ width: `${Math.max(score, 4)}%` }} /></div><span className="text-xs font-bold text-accent">{score}%</span></div></div><div className="max-h-[540px] overflow-y-auto p-5 sm:p-6"><div className="min-h-[300px] rounded-2xl border border-white/10 bg-white/[.055] p-4 font-mono text-[0.72rem] leading-6 text-slate-300 sm:p-5">{prompt ? prompt.split("\n\n").map((block, index) => { const [label, ...body] = block.split("\n"); return <div key={`${label}-${index}`} className="mb-5 last:mb-0"><p className="mb-1 text-[0.62rem] font-bold tracking-[0.14em] text-accent">{label}</p><p className="whitespace-pre-wrap">{body.join("\n")}</p></div>; }) : <div className="flex min-h-[280px] flex-col items-center justify-center text-center text-slate-500"><FileText className="mb-3 h-7 w-7" /><p className="font-sans text-sm font-semibold">Your words will land here.</p><p className="mt-1 max-w-[210px] font-sans text-xs leading-5">Fill the thinking layer and watch the prompt take shape.</p></div>}</div><div className="mt-4 flex flex-col gap-2 sm:flex-row"><Button onClick={handleCopy} variant="outline" className="flex-1 border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"><Clipboard className="h-4 w-4" /> Copy prompt</Button><Button onClick={() => void handleSave()} disabled={saving} className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90"><Save className="h-4 w-4" /> {saving ? "Saving..." : "Save to library"}</Button></div><div className="mt-4 flex items-center gap-2 border-t border-white/10 pt-4 text-xs text-slate-400"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#55e0bd]/15 text-[#79edd0]"><Check className="h-3 w-3" /></span> {isApiConfigured && !isDemo ? "Saved content stays on your account and is sent to providers only when you explicitly run one." : "Nothing is sent anywhere in this demo workspace."}</div></div></div><div className="mt-4 rounded-2xl border border-dashed bg-card p-4"><div className="flex items-start gap-3"><Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-[#c0832c]" /><div><p className="text-sm font-bold">A small prompt heuristic</p><p className="mt-1 text-xs leading-5 text-muted-foreground">If the result could apply to anyone, add one detail about your audience, environment, or definition of done.</p></div></div></div></aside>
       </div>
     </div>
   );

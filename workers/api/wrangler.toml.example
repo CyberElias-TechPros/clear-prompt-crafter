@@ -1,0 +1,46 @@
+# Copy to workers/api/wrangler.toml after creating the D1 database.
+# Never commit the real database id or .dev.vars.
+name = "prompt-gineer-api"
+main = "src/index.ts"
+compatibility_date = "2026-09-09"
+workers_dev = true
+
+[triggers]
+crons = ["0 3 * * *"]
+
+[observability]
+enabled = true
+
+[vars]
+# Use the exact Vercel production origin(s), comma-separated for a controlled preview allowlist.
+APP_ORIGIN = "https://your-domain.example"
+APP_URL = "https://your-domain.example"
+# Public Worker origin used for verification links when the API is not same-origin.
+API_URL = "https://prompt-gineer-api.example.workers.dev"
+REQUIRE_EMAIL_VERIFICATION = "true"
+SESSION_DAYS = "14"
+OPENAI_MODEL = "gpt-4o-mini"
+ANTHROPIC_MODEL = "claude-3-5-haiku-latest"
+GOOGLE_MODEL = "gemini-2.0-flash"
+
+# Create the database first:
+#   npx wrangler d1 create prompt-gineer
+# Then replace REPLACE_WITH_D1_DATABASE_ID with the id printed by Wrangler.
+[[d1_databases]]
+binding = "DB"
+database_name = "prompt-gineer"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+migrations_dir = "migrations"
+
+# KV is required for edge rate limiting. Create a namespace, then replace the id.
+#   npx wrangler kv namespace create RATE_LIMIT
+[[kv_namespaces]]
+binding = "RATE_LIMIT"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+# Provider and email credentials are secrets, not vars:
+#   npx wrangler secret put RESEND_API_KEY
+#   npx wrangler secret put EMAIL_FROM
+#   npx wrangler secret put OPENAI_API_KEY
+#   npx wrangler secret put ANTHROPIC_API_KEY
+#   npx wrangler secret put GOOGLE_AI_API_KEY

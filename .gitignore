@@ -29,5 +29,10 @@ dist-ssr
 *.sln
 *.sw?
 
+# Worker deployment and local secret files
+workers/api/wrangler.toml
+workers/api/.dev.vars
+workers/api/.wrangler
+
 # TypeScript incremental metadata
 *.tsbuildinfo

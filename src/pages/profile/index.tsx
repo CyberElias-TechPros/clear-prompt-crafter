@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { BarChart3, CalendarDays, Eye, FileText, Heart, MoreHorizontal, Plus, Settings2, Sparkles, Trophy } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
@@ -6,20 +6,36 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getAllPrompts } from "@/lib/demo-data";
+import { getAllPrompts, type PromptRecord } from "@/lib/demo-data";
+import { apiGet, apiPromptToRecord, isApiConfigured, type MeResponse, type PromptListResponse } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 export default function ProfilePage() {
   const { user, isDemo } = useAuth();
   const [tab, setTab] = useState("library");
   const name = user?.user_metadata?.full_name || "Alex Morgan";
-  const prompts = useMemo(() => getAllPrompts().filter((prompt) => prompt.author === name || !prompt.isPublic).slice(0, 8), [name]);
+  const [prompts, setPrompts] = useState<PromptRecord[]>(() => isApiConfigured ? [] : getAllPrompts().filter((prompt) => prompt.author === name || !prompt.isPublic).slice(0, 8));
+  const [stats, setStats] = useState({ prompts: prompts.length + 6, publicPrompts: prompts.filter((prompt) => prompt.isPublic).length, points: 1284 });
   const initials = name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+
+  useEffect(() => {
+    if (!isApiConfigured) return;
+    let active = true;
+    void Promise.all([apiGet<PromptListResponse>("/me/prompts?limit=50"), apiGet<MeResponse>("/me")])
+      .then(([promptResponse, meResponse]) => {
+        if (!active) return;
+        setPrompts(promptResponse.prompts.map(apiPromptToRecord));
+        setStats(meResponse.stats);
+      })
+      .catch((error) => { if (active) toast.error(error instanceof Error ? error.message : "Unable to load your profile."); });
+    return () => { active = false; };
+  }, []);
 
   return (
     <div className="page-enter mx-auto max-w-6xl">
       <div className="relative overflow-hidden rounded-[24px] bg-[#13213a] px-6 py-7 text-white sm:px-9 sm:py-9"><div className="hero-grid absolute inset-0 opacity-40" /><div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-accent/20 blur-[90px]" /><div className="relative flex flex-col gap-7 sm:flex-row sm:items-end sm:justify-between"><div className="flex items-end gap-4"><Avatar className="h-20 w-20 rounded-2xl border-4 border-white/10"><AvatarFallback className="rounded-xl bg-accent text-xl font-bold text-primary">{initials}</AvatarFallback></Avatar><div><p className="eyebrow text-[#79edd0]">Prompt engineer</p><h1 className="display-font mt-2 text-4xl font-semibold leading-none">{name}</h1><p className="mt-2 text-sm text-slate-300">{isDemo ? "Exploring the demo workspace" : user?.email}</p></div></div><Button asChild variant="outline" className="w-fit border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"><Link to="/settings"><Settings2 className="h-4 w-4" /> Edit profile</Link></Button></div></div>
-      <div className="grid gap-3 py-6 sm:grid-cols-3"><div className="surface rounded-2xl p-4"><p className="text-xs text-muted-foreground">Prompt systems</p><p className="mt-1 text-2xl font-bold">{prompts.length + 6}</p><p className="mt-1 text-xs font-semibold text-accent">+3 this week</p></div><div className="surface rounded-2xl p-4"><p className="text-xs text-muted-foreground">Library impact</p><p className="mt-1 text-2xl font-bold">1,284</p><p className="mt-1 text-xs font-semibold text-accent">reads across public prompts</p></div><div className="surface rounded-2xl p-4"><p className="text-xs text-muted-foreground">Current streak</p><p className="mt-1 text-2xl font-bold">9 days</p><p className="mt-1 flex items-center gap-1 text-xs font-semibold text-[#b77b22]"><Trophy className="h-3.5 w-3.5" /> Clarity champion</p></div></div>
+      <div className="grid gap-3 py-6 sm:grid-cols-3"><div className="surface rounded-2xl p-4"><p className="text-xs text-muted-foreground">Prompt systems</p><p className="mt-1 text-2xl font-bold">{stats.prompts}</p><p className="mt-1 text-xs font-semibold text-accent">{stats.publicPrompts} published</p></div><div className="surface rounded-2xl p-4"><p className="text-xs text-muted-foreground">Public reach</p><p className="mt-1 text-2xl font-bold">{isApiConfigured ? stats.publicPrompts : "—"}</p><p className="mt-1 text-xs font-semibold text-muted-foreground">Use the API for durable analytics</p></div><div className="surface rounded-2xl p-4"><p className="text-xs text-muted-foreground">Clarity points</p><p className="mt-1 text-2xl font-bold">{stats.points}</p><p className="mt-1 flex items-center gap-1 text-xs font-semibold text-[#b77b22]"><Trophy className="h-3.5 w-3.5" /> Earned in your account</p></div></div>
 
       <Tabs value={tab} onValueChange={setTab}><TabsList className="h-11 rounded-xl bg-secondary p-1"><TabsTrigger value="library" className="rounded-lg px-5 text-xs font-bold">My library</TabsTrigger><TabsTrigger value="activity" className="rounded-lg px-5 text-xs font-bold">Activity</TabsTrigger><TabsTrigger value="about" className="rounded-lg px-5 text-xs font-bold">About</TabsTrigger></TabsList><TabsContent value="library" className="mt-6"><div className="mb-4 flex items-center justify-between"><div><p className="eyebrow">Saved systems</p><h2 className="mt-1 text-2xl font-bold">Your prompt library</h2></div><Button asChild className="bg-accent text-accent-foreground hover:bg-accent/90"><Link to="/prompts/new"><Plus className="h-4 w-4" /> New prompt</Link></Button></div>{prompts.length === 0 ? <div className="surface rounded-2xl py-16 text-center"><FileText className="mx-auto h-8 w-8 text-muted-foreground" /><p className="mt-4 font-bold">Your library is ready for its first system.</p><Button asChild className="mt-5"><Link to="/prompts/new">Build a prompt</Link></Button></div> : <div className="grid gap-4 md:grid-cols-2">{prompts.map((prompt) => <Link to={`/community/prompt/${prompt.id}`} key={prompt.id} className="surface surface-hover group rounded-2xl p-5"><div className="flex items-start justify-between gap-3"><Badge variant="outline" className="border-accent/20 bg-accent/5 text-[0.62rem] text-accent">{prompt.isPublic ? "Published" : "Private"}</Badge><MoreHorizontal className="h-4 w-4 text-muted-foreground" /></div><h3 className="mt-5 text-lg font-bold group-hover:text-accent">{prompt.title}</h3><p className="mt-2 line-clamp-2 text-sm leading-6 text-muted-foreground">{prompt.description}</p><div className="mt-5 flex items-center gap-4 border-t pt-4 text-xs text-muted-foreground"><span className="flex items-center gap-1"><Heart className="h-3.5 w-3.5" /> {prompt.likes}</span><span className="flex items-center gap-1"><Eye className="h-3.5 w-3.5" /> {prompt.views}</span><span className="ml-auto">{formatDistanceToNow(new Date(prompt.updatedAt), { addSuffix: true })}</span></div></Link>)}</div>}</TabsContent><TabsContent value="activity" className="mt-6"><div className="surface rounded-2xl p-6"><div className="space-y-5"><div className="flex gap-4"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent"><Sparkles className="h-4 w-4" /></span><div><p className="text-sm font-semibold">Your prompt clarity score rose to 86%</p><p className="mt-1 text-xs text-muted-foreground">Today · You added an explicit output format.</p></div></div><div className="flex gap-4"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#b77b22]/10 text-[#b77b22]"><Heart className="h-4 w-4" /></span><div><p className="text-sm font-semibold">Your launch brief was saved by 12 people</p><p className="mt-1 text-xs text-muted-foreground">Yesterday · Community library</p></div></div><div className="flex gap-4"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#6d62b1]/10 text-[#6d62b1]"><BarChart3 className="h-4 w-4" /></span><div><p className="text-sm font-semibold">You reached 1,000 total prompt reads</p><p className="mt-1 text-xs text-muted-foreground">{format(new Date(), "MMM d, yyyy")} · Milestone</p></div></div></div></div></TabsContent><TabsContent value="about" className="mt-6"><div className="surface max-w-2xl rounded-2xl p-6"><p className="eyebrow">A little context</p><h2 className="mt-3 text-2xl font-bold">Prompts are small systems.</h2><p className="mt-4 text-sm leading-7 text-muted-foreground">The most useful prompts do more than ask a question. They give a capable collaborator the context, boundaries, and definition of done needed to do good work.</p><div className="mt-6 flex items-center gap-2 text-xs font-semibold text-muted-foreground"><CalendarDays className="h-4 w-4 text-accent" /> Member since September 2026</div></div></TabsContent></Tabs>
     </div>
