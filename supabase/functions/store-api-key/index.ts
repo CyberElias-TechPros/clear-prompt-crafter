@@ -1,87 +1,36 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.33.1"
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+const allowedOrigin = Deno.env.get("ALLOWED_ORIGIN") ?? "";
+const cors = (origin = "") => ({
+  ...(allowedOrigin && origin === allowedOrigin ? { "Access-Control-Allow-Origin": origin, Vary: "Origin" } : {}),
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "*",
-  "Access-Control-Max-Age": "86400",
-};
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Content-Type": "application/json; charset=utf-8",
+});
+
+function response(body: Record<string, string>, status: number, origin = "") {
+  return new Response(JSON.stringify(body), { status, headers: cors(origin) });
+}
+
+async function isAuthenticated(req: Request) {
+  const authorization = req.headers.get("Authorization");
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!authorization || !url || !key) return false;
+  const client = createClient(url, key, { global: { headers: { Authorization: authorization } } });
+  const { data } = await client.auth.getUser();
+  return Boolean(data.user);
+}
 
 serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+  const origin = req.headers.get("Origin") ?? "";
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(origin) });
+  if (req.method !== "POST") return response({ error: "Method not allowed" }, 405, origin);
+  if (!(await isAuthenticated(req))) return response({ error: "Unauthorized" }, 401, origin);
 
-  try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
-    )
-
-    // Get the session of the user
-    const {
-      data: { session },
-    } = await supabaseClient.auth.getSession()
-
-    if (!session) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    const { service_name, api_key } = await req.json()
-
-    if (!service_name || !api_key) {
-      return new Response(
-        JSON.stringify({ error: 'Missing required fields' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Store the API key in encrypted form using vault
-    const { data: encryptionData, error: encryptionError } = await supabaseClient
-      .rpc('encrypt_api_key', {
-        key_value: api_key
-      })
-
-    if (encryptionError) {
-      console.error('Error encrypting API key:', encryptionError);
-      throw encryptionError;
-    }
-
-    // Store the API key reference and service info
-    const { data, error } = await supabaseClient
-      .from('user_ai_services')
-      .upsert(
-        {
-          user_id: session.user.id,
-          service_name,
-          api_key_id: encryptionData,
-          is_active: true,
-        },
-        { onConflict: 'user_id,service_name' }
-      )
-
-    if (error) throw error
-
-    return new Response(
-      JSON.stringify({ success: true }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-  } catch (error) {
-    console.error('Error storing API key:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-  }
-})
+  // The previous implementation called a placeholder encrypt_api_key function
+  // that returned an ID without storing or encrypting the secret. Refuse the
+  // operation until a real vault/Worker secret implementation is configured.
+  return response({ error: "Secure provider secret storage is not configured" }, 501, origin);
+});

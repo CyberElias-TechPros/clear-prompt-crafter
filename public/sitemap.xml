@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Replace prompt-gineer.example with the production domain before launch. -->
+  <url><loc>https://prompt-gineer.example/</loc></url>
+  <url><loc>https://prompt-gineer.example/community</loc></url>
+  <url><loc>https://prompt-gineer.example/leaderboard</loc></url>
+  <url><loc>https://prompt-gineer.example/contact</loc></url>
+</urlset>

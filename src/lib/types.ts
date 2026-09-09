@@ -75,7 +75,7 @@ export type UserHistory = {
   id: string;
   user_id: string;
   action_type: string;
-  data: any;
+  data: unknown;
   created_at: string;
 };
 

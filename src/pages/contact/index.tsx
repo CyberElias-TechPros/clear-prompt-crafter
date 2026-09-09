@@ -1,189 +1,19 @@
-
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { ArrowLeft, ArrowRight, Check, Mail, MessageCircle, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Mail, MessageSquare, Send } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import Seo from "@/components/Seo";
 
 export default function ContactPage() {
   const { user } = useAuth();
-  const [formData, setFormData] = useState({
-    name: user?.user_metadata?.full_name || "",
-    email: user?.email || "",
-    subject: "",
-    message: "",
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [form, setForm] = useState({ name: user?.user_metadata?.full_name || "", email: user?.email || "", message: "" });
+  const [sent, setSent] = useState(false);
+  const update = (key: keyof typeof form, value: string) => setForm((current) => ({ ...current, [key]: value }));
+  const submit = (event: React.FormEvent) => { event.preventDefault(); setSent(true); toast.success("Thanks — your message is ready for the team."); };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    try {
-      // Send contact form data to database
-      if (user) {
-        await supabase.from("user_history").insert({
-          user_id: user.id,
-          action_type: "contact_form",
-          data: {
-            subject: formData.subject,
-            message: formData.message,
-          }
-        });
-      }
-
-      // Reset form and show success message
-      setFormData({
-        name: user?.user_metadata?.full_name || "",
-        email: user?.email || "",
-        subject: "",
-        message: "",
-      });
-
-      toast({
-        title: "Message sent successfully",
-        description: "We've received your message and will get back to you soon!",
-      });
-    } catch (error) {
-      console.error("Error submitting form:", error);
-      toast({
-        title: "Error sending message",
-        description: "There was a problem sending your message. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-background py-12">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <Button variant="ghost" size="sm" asChild className="mb-6">
-          <Link to="/">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Home
-          </Link>
-        </Button>
-
-        <div className="flex flex-col md:flex-row gap-8 md:gap-12">
-          <div className="md:w-1/2">
-            <h1 className="text-4xl font-bold mb-6">Contact Us</h1>
-            
-            <p className="text-muted-foreground mb-8">
-              Have questions about our services or need help with your account? Fill out the form and our team will get back to you as soon as possible.
-            </p>
-            
-            <div className="space-y-6">
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Mail className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-medium">Email</h3>
-                  <p className="text-muted-foreground">support@prompt-gineer.com</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <MessageSquare className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-medium">Live Chat</h3>
-                  <p className="text-muted-foreground">Available Monday-Friday, 9am-5pm ET</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="md:w-1/2">
-            <div className="bg-card border border-border p-6 rounded-lg shadow-sm">
-              <h2 className="text-2xl font-semibold mb-6">Send us a message</h2>
-              
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <label htmlFor="name" className="text-sm font-medium">Name</label>
-                    <Input
-                      id="name"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      placeholder="Your name"
-                      required
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label htmlFor="email" className="text-sm font-medium">Email</label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      placeholder="Your email"
-                      required
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="subject" className="text-sm font-medium">Subject</label>
-                  <Input
-                    id="subject"
-                    name="subject"
-                    value={formData.subject}
-                    onChange={handleChange}
-                    placeholder="How can we help you?"
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="message" className="text-sm font-medium">Message</label>
-                  <Textarea
-                    id="message"
-                    name="message"
-                    value={formData.message}
-                    onChange={handleChange}
-                    placeholder="Tell us about your question or issue"
-                    rows={5}
-                    required
-                  />
-                </div>
-                
-                <Button 
-                  type="submit" 
-                  className="w-full"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <span className="flex items-center gap-2">
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></span>
-                      Sending...
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-2">
-                      <Send className="h-4 w-4" />
-                      Send Message
-                    </span>
-                  )}
-                </Button>
-              </form>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  return <div className="page-enter mx-auto max-w-5xl"><Seo title="Contact Prompt-Gineer" description="Talk to the Prompt-Gineer team about your workspace, prompt systems, or a team rollout." path="/contact" /><Link to="/" className="mb-8 inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" /> Back to home</Link><div className="grid gap-12 lg:grid-cols-[.82fr_1.18fr] lg:items-start"><div><p className="eyebrow">We’re good listeners</p><h1 className="display-font mt-4 text-5xl font-semibold leading-[.97] tracking-tight">Let’s talk about the work.</h1><p className="mt-6 max-w-md text-base leading-7 text-muted-foreground">Questions about your workspace, a team rollout, or the art of making an ask clearer? We’d love to hear it.</p><div className="mt-10 space-y-5"><div className="flex gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent"><Mail className="h-4 w-4" /></span><div><p className="text-sm font-bold">Email the team</p><p className="mt-1 text-sm text-muted-foreground">hello@prompt-gineer.example</p></div></div><div className="flex gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#6d62b1]/10 text-[#6d62b1]"><MessageCircle className="h-4 w-4" /></span><div><p className="text-sm font-bold">Response time</p><p className="mt-1 text-sm text-muted-foreground">Usually within one business day</p></div></div></div></div><div className="surface rounded-2xl p-6 sm:p-8"><p className="eyebrow">Send a note</p><h2 className="mt-2 text-2xl font-bold">What’s on your mind?</h2>{sent ? <div className="py-14 text-center"><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 text-accent"><Check className="h-5 w-5" /></div><h3 className="mt-5 text-lg font-bold">Message received</h3><p className="mx-auto mt-2 max-w-xs text-sm leading-6 text-muted-foreground">Thanks for reaching out. The team will follow up at {form.email || "your email"}.</p><Button onClick={() => { setSent(false); setForm((current) => ({ ...current, message: "" })); }} variant="outline" className="mt-6">Send another note</Button></div> : <form onSubmit={submit} className="mt-6 space-y-4"><div className="grid gap-4 sm:grid-cols-2"><label><span className="text-xs font-bold uppercase tracking-[.12em] text-muted-foreground">Name</span><Input value={form.name} onChange={(event) => update("name", event.target.value)} placeholder="Your name" className="mt-2 h-11 rounded-xl" required /></label><label><span className="text-xs font-bold uppercase tracking-[.12em] text-muted-foreground">Email</span><Input type="email" value={form.email} onChange={(event) => update("email", event.target.value)} placeholder="you@company.com" className="mt-2 h-11 rounded-xl" required /></label></div><label className="block"><span className="text-xs font-bold uppercase tracking-[.12em] text-muted-foreground">Message</span><Textarea value={form.message} onChange={(event) => update("message", event.target.value)} placeholder="Tell us what you’re working on..." className="mt-2 min-h-[150px] rounded-xl" required /></label><Button type="submit" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">Send message <Send className="h-4 w-4" /></Button><p className="text-center text-xs text-muted-foreground">This demo form confirms the interaction locally. Connect a mail provider before production.</p></form>}</div></div><div className="mt-12 border-t pt-6 text-xs text-muted-foreground"><Link to="/community" className="inline-flex items-center gap-2 font-semibold text-accent">Or browse the community library <ArrowRight className="h-3.5 w-3.5" /></Link></div></div>;
 }

@@ -1,257 +1,67 @@
-
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { Input } from "@/components/ui/input";
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { ArrowLeft, ArrowRight, Check, Eye, EyeOff, LockKeyhole, PenLine, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "sonner";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PenTool } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import Seo from "@/components/Seo";
 
-const AuthPage = () => {
-  const { user, signIn, signUp } = useAuth();
+export default function AuthPage() {
+  const { user, signIn, signUp, enterDemo } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [authError, setAuthError] = useState("");
-  const [activeTab, setActiveTab] = useState("sign-in");
+  const [showPassword, setShowPassword] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
-  React.useEffect(() => {
-    if (user) {
-      navigate("/dashboard");
-    }
+  useEffect(() => {
+    if (user) navigate("/dashboard", { replace: true });
   }, [user, navigate]);
 
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError("");
-    
-    if (!email || !password) {
-      setAuthError("Please enter both email and password");
-      return;
-    }
-    
-    setIsLoading(true);
-    try {
-      const { error } = await signIn(email, password);
-      if (error) {
-        setAuthError(error.message);
-        toast.error("Sign in failed: " + error.message);
-      } else {
-        toast.success("Signed in successfully!");
-        navigate("/dashboard");
-      }
-    } catch (error) {
-      console.error("Sign in error:", error);
-      setAuthError("An unexpected error occurred");
-      toast.error("An unexpected error occurred during sign in");
-    } finally {
-      setIsLoading(false);
-    }
+  const goToWorkspace = () => navigate(searchParams.get("next") || "/dashboard");
+
+  const handleDemo = () => {
+    enterDemo();
+    toast.success("Demo workspace opened");
+    goToWorkspace();
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError("");
-    
-    if (!email || !password) {
-      setAuthError("Please enter both email and password");
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError("");
+    if (!email.trim() || !password) return setError("Enter your email and password to continue.");
+    if (tab === "signup" && password !== confirmPassword) return setError("Those passwords do not match.");
+    if (tab === "signup" && password.length < 8) return setError("Use at least 8 characters for your password.");
+
+    setBusy(true);
+    const result = tab === "signin" ? await signIn(email.trim(), password) : await signUp(email.trim(), password, { full_name: name.trim() });
+    setBusy(false);
+    if (result.error) {
+      setError(result.error.message || "That did not work. Check your details and try again.");
       return;
     }
-    
-    if (password !== confirmPassword) {
-      setAuthError("Passwords don't match");
-      return;
-    }
-    
-    if (password.length < 6) {
-      setAuthError("Password must be at least 6 characters");
-      return;
-    }
-    
-    setIsLoading(true);
-    try {
-      const { error } = await signUp(email, password);
-      if (error) {
-        setAuthError(error.message);
-        toast.error("Sign up failed: " + error.message);
-      } else {
-        toast.success("Account created! Check your email for confirmation.");
-        setActiveTab("sign-in");
-      }
-    } catch (error) {
-      console.error("Sign up error:", error);
-      setAuthError("An unexpected error occurred");
-      toast.error("An unexpected error occurred during sign up");
-    } finally {
-      setIsLoading(false);
+    if (tab === "signup") {
+      toast.success("Account created. Check your email to verify it.");
+      setTab("signin");
+    } else {
+      toast.success("Welcome back");
+      goToWorkspace();
     }
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <div className="container flex-1 flex items-center justify-center py-12 px-4">
-        <div className="w-full max-w-md space-y-8">
-          <div className="text-center mb-8">
-            <div className="flex justify-center mb-4">
-              <div className="p-3 rounded-full bg-purple-100 dark:bg-purple-900/30">
-                <PenTool className="h-8 w-8 text-purple-600" />
-              </div>
-            </div>
-            <h1 className="text-3xl font-bold">Prompt-Gineer</h1>
-            <p className="text-muted-foreground mt-2">
-              Sign in to access your personalized prompt engineering workspace
-            </p>
-          </div>
+    <div className="grid min-h-screen bg-background lg:grid-cols-[.9fr_1.1fr]"><Seo title="Sign in — Prompt-Gineer" description="Open your Prompt-Gineer workspace." path="/auth" noindex />
+      <section className="relative hidden overflow-hidden bg-[#10192b] p-10 text-white lg:flex lg:flex-col lg:justify-between xl:p-14"><div className="hero-grid absolute inset-0 opacity-60" /><div className="absolute -bottom-32 -left-20 h-96 w-96 rounded-full bg-[#2b7580]/30 blur-[100px]" /><div className="relative"><Link to="/" className="inline-flex items-center gap-2 text-sm text-slate-300 hover:text-white"><ArrowLeft className="h-4 w-4" /> Back to home</Link><div className="mt-28 max-w-lg"><Badge className="border-[#55e0bd]/30 bg-[#55e0bd]/10 text-[#79edd0] hover:bg-[#55e0bd]/10"><Sparkles className="mr-2 h-3.5 w-3.5" /> Your ideas, with a clearer next step</Badge><h1 className="display-font mt-6 text-6xl font-semibold leading-[.96] tracking-[-.06em]">Make the blank page less intimidating.</h1><p className="mt-6 max-w-md text-base leading-7 text-slate-300">A focused workspace for building prompts that carry your intent — from the first rough thought to the final reusable system.</p><div className="mt-9 space-y-3 text-sm text-slate-300"><p className="flex items-center gap-3"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#55e0bd]/15 text-[#79edd0]"><Check className="h-3.5 w-3.5" /></span> A six-part structure that stays out of your way</p><p className="flex items-center gap-3"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#55e0bd]/15 text-[#79edd0]"><Check className="h-3.5 w-3.5" /></span> A private library for the systems worth repeating</p><p className="flex items-center gap-3"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#55e0bd]/15 text-[#79edd0]"><Check className="h-3.5 w-3.5" /></span> A community full of useful starting points</p></div></div></div><div className="relative flex items-center justify-between border-t border-white/10 pt-5 text-xs text-slate-400"><span className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/10"><PenLine className="h-3.5 w-3.5" /></span><span className="brand-wordmark font-bold text-white">Prompt-Gineer</span></span><span>Built for thoughtful work</span></div></section>
 
-          <Card>
-            <CardHeader className="space-y-1">
-              <Tabs defaultValue="sign-in" value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="sign-in">Sign In</TabsTrigger>
-                  <TabsTrigger value="sign-up">Sign Up</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </CardHeader>
-
-            <CardContent className="p-6">
-              {activeTab === "sign-in" ? (
-                <form onSubmit={handleSignIn} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="name@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  {authError && (
-                    <div className="p-3 rounded-md bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 text-sm">
-                      {authError}
-                    </div>
-                  )}
-
-                  <Button
-                    type="submit"
-                    className="w-full bg-purple-600 hover:bg-purple-700"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Signing In..." : "Sign In"}
-                  </Button>
-                </form>
-              ) : (
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="name@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="confirm-password">Confirm Password</Label>
-                    <Input
-                      id="confirm-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  {authError && (
-                    <div className="p-3 rounded-md bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 text-sm">
-                      {authError}
-                    </div>
-                  )}
-
-                  <Button
-                    type="submit"
-                    className="w-full bg-purple-600 hover:bg-purple-700"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Creating Account..." : "Create Account"}
-                  </Button>
-                </form>
-              )}
-            </CardContent>
-          </Card>
-
-          <div className="text-center text-sm text-muted-foreground mt-4">
-            <p>
-              By continuing, you agree to our{" "}
-              <a href="/terms" className="underline hover:text-primary">
-                Terms of Service
-              </a>{" "}
-              and{" "}
-              <a href="/privacy" className="underline hover:text-primary">
-                Privacy Policy
-              </a>
-            </p>
-          </div>
-        </div>
-      </div>
-      
-      <div className="container mx-auto py-8 px-4 mb-8">
-        <h2 className="text-xl font-semibold text-center mb-8">Why Join Prompt-Gineer</h2>
-        <div className="grid gap-6 md:grid-cols-2 max-w-2xl mx-auto">
-          <Card>
-            <CardHeader>
-              <CardTitle>Access to AI Tools</CardTitle>
-              <CardDescription>Connect and utilize various AI services</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>Seamlessly integrate with popular AI services and optimize your prompts for best results.</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Prompt Library</CardTitle>
-              <CardDescription>Reuse and share effective prompts</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>Build your personal collection of effective prompts or collaborate with the community.</p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      <section className="flex items-center justify-center px-5 py-10 sm:px-8"><div className="w-full max-w-md"><div className="mb-8 flex items-center justify-between lg:hidden"><Link to="/" className="flex items-center gap-2 font-bold"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground"><PenLine className="h-4 w-4" /></span>Prompt-Gineer</Link><Link to="/" className="text-sm text-muted-foreground hover:text-foreground">Back home</Link></div><div className="mb-9"><p className="eyebrow">Welcome to the studio</p><h2 className="display-font mt-3 text-4xl font-semibold leading-none tracking-tight">{tab === "signin" ? "Pick up your thread." : "Make a little room for better work."}</h2><p className="mt-4 text-sm leading-6 text-muted-foreground">{tab === "signin" ? "Sign in to your workspace, or open a local demo to explore the full product." : "Create an account to save your prompt systems and build a library over time."}</p></div><div className="mb-6 flex rounded-xl bg-secondary p-1"><button type="button" onClick={() => { setTab("signin"); setError(""); }} className={`flex-1 rounded-lg px-3 py-2 text-sm font-bold transition ${tab === "signin" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}>Sign in</button><button type="button" onClick={() => { setTab("signup"); setError(""); }} className={`flex-1 rounded-lg px-3 py-2 text-sm font-bold transition ${tab === "signup" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}>Create account</button></div><form onSubmit={handleSubmit} className="space-y-4">{tab === "signup" && <div><Label htmlFor="name">Your name</Label><Input id="name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Alex Morgan" className="mt-2 h-11 rounded-xl" /></div>}<div><Label htmlFor="email">Email address</Label><Input id="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@company.com" className="mt-2 h-11 rounded-xl" required /></div><div><div className="flex items-center justify-between"><Label htmlFor="password">Password</Label>{tab === "signin" && <button type="button" className="text-xs font-semibold text-accent hover:underline" onClick={() => toast("Password reset is available when remote auth is configured.")}>Forgot password?</button>}</div><div className="relative mt-2"><Input id="password" type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="At least 8 characters" className="h-11 rounded-xl pr-11" required /><button type="button" onClick={() => setShowPassword((current) => !current)} className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center text-muted-foreground hover:text-foreground" aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div></div>{tab === "signup" && <div><Label htmlFor="confirm-password">Confirm password</Label><Input id="confirm-password" type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Repeat your password" className="mt-2 h-11 rounded-xl" required /></div>}{error && <div role="alert" className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm leading-5 text-destructive">{error}</div>}<Button type="submit" disabled={busy} className="h-11 w-full bg-primary font-bold hover:bg-primary/90">{busy ? "Working..." : tab === "signin" ? "Sign in to workspace" : "Create my account"}<ArrowRight className="h-4 w-4" /></Button></form><div className="my-6 flex items-center gap-3"><div className="h-px flex-1 bg-border" /><span className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-muted-foreground">or explore first</span><div className="h-px flex-1 bg-border" /></div><Button type="button" onClick={handleDemo} variant="outline" className="h-11 w-full rounded-xl border-accent/30 bg-accent/5 font-bold text-accent hover:bg-accent/10 hover:text-accent"><Sparkles className="h-4 w-4" /> Open the demo workspace</Button><p className="mt-6 flex items-start gap-2 text-xs leading-5 text-muted-foreground"><LockKeyhole className="mt-0.5 h-3.5 w-3.5 shrink-0" /> Demo data stays in this browser. Remote authentication and persistence are optional for local development.</p><p className="mt-8 text-center text-xs leading-5 text-muted-foreground">By continuing, you agree to our <Link to="/terms" className="font-semibold text-foreground underline-offset-4 hover:underline">Terms</Link> and <Link to="/privacy" className="font-semibold text-foreground underline-offset-4 hover:underline">Privacy Policy</Link>.</p></div></section>
     </div>
   );
-};
-
-export default AuthPage;
+}

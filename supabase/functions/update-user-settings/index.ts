@@ -1,76 +1,50 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.33.1"
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+const allowedOrigin = Deno.env.get("ALLOWED_ORIGIN") ?? "";
+const cors = (origin = "") => ({
+  ...(allowedOrigin && origin === allowedOrigin ? { "Access-Control-Allow-Origin": origin, Vary: "Origin" } : {}),
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "*",
-  "Access-Control-Max-Age": "86400",
-};
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Content-Type": "application/json; charset=utf-8",
+});
+
+function json(body: Record<string, unknown>, status: number, origin = "") {
+  return new Response(JSON.stringify(body), { status, headers: cors(origin) });
+}
 
 serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+  const origin = req.headers.get("Origin") ?? "";
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(origin) });
+  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405, origin);
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
-    )
+    const authorization = req.headers.get("Authorization");
+    const url = Deno.env.get("SUPABASE_URL");
+    const key = Deno.env.get("SUPABASE_ANON_KEY");
+    if (!authorization || !url || !key) return json({ error: "Unauthorized" }, 401, origin);
+    const client = createClient(url, key, { global: { headers: { Authorization: authorization } } });
+    const { data: authData } = await client.auth.getUser();
+    if (!authData.user) return json({ error: "Unauthorized" }, 401, origin);
 
-    // Get the session of the user
-    const {
-      data: { session },
-    } = await supabaseClient.auth.getSession()
+    const body = await req.json() as { settings?: unknown };
+    if (!body.settings || typeof body.settings !== "object") return json({ error: "Invalid settings payload" }, 400, origin);
+    const input = body.settings as Record<string, unknown>;
+    const settings = {
+      user_id: authData.user.id,
+      ...(typeof input.allow_learning === "boolean" ? { allow_learning: input.allow_learning } : {}),
+      ...(input.theme === "light" || input.theme === "dark" ? { theme: input.theme } : {}),
+    };
+    if (Object.keys(settings).length === 1) return json({ error: "No editable settings supplied" }, 400, origin);
 
-    if (!session) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    const { data, error } = await client.from("user_settings").upsert(settings, { onConflict: "user_id" }).select("user_id, allow_learning, theme, updated_at").single();
+    if (error) {
+      console.error("settings update failed", error.message);
+      return json({ error: "Unable to update settings" }, 500, origin);
     }
-
-    const { settings } = await req.json()
-
-    if (!settings) {
-      return new Response(
-        JSON.stringify({ error: 'Missing settings data' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Add user_id to settings object
-    const settingsWithUserId = {
-      ...settings,
-      user_id: session.user.id,
-    }
-
-    // Update user settings
-    const { data, error } = await supabaseClient
-      .from('user_settings')
-      .upsert(settingsWithUserId, { onConflict: 'user_id' })
-      .select()
-      .single()
-
-    if (error) throw error
-
-    return new Response(
-      JSON.stringify({ success: true, data }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    return json({ data }, 200, origin);
   } catch (error) {
-    console.error('Error updating user settings:', error)
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    console.error("update-user-settings failed", error instanceof Error ? error.message : "unknown error");
+    return json({ error: "Unable to update settings" }, 500, origin);
   }
-})
+});

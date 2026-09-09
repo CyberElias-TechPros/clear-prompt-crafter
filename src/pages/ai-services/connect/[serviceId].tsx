@@ -1,245 +1,35 @@
-
-import React, { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import React, { useMemo } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, ExternalLink, KeyRound, LockKeyhole, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "@/hooks/use-toast";
-import { AlertCircle, ArrowLeft, ChevronLeft, ExternalLink } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { SupportedAIService } from "@/lib/types";
+import { Badge } from "@/components/ui/badge";
+import { getConnectedServices, setConnectedService } from "@/lib/demo-data";
+import { toast } from "sonner";
 
-const supportedServices: SupportedAIService[] = [
-  {
-    id: "openai",
-    name: "OpenAI",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg",
-    description: "Connect with OpenAI's models like GPT-4o and DALL-E.",
-    authUrl: "https://platform.openai.com/account/api-keys",
-    apiKeyTitle: "API Key",
-  },
-  {
-    id: "anthropic",
-    name: "Anthropic",
-    logo: "https://anthropic.com/images/icons/icon-192x192.png",
-    description: "Use Claude models for sensitive and complex tasks.",
-    authUrl: "https://console.anthropic.com/account/keys",
-    apiKeyTitle: "API Key",
-  },
-  {
-    id: "gemini",
-    name: "Google Gemini",
-    logo: "https://lh3.googleusercontent.com/a/AGNmyxbYMf1L7RCOqiDyYbM_9S1-I5XVWl0DqefSQccnRw=s96-c",
-    description: "Access Google's Gemini models for advanced AI capabilities.",
-    authUrl: "https://makersuite.google.com/app/apikey",
-    apiKeyTitle: "API Key",
-  },
-];
+const providers: Record<string, { name: string; short: string; color: string; description: string; docs: string }> = {
+  openai: { name: "OpenAI", short: "OAI", color: "#6bb89b", description: "GPT models for general reasoning and generation.", docs: "https://platform.openai.com/docs" },
+  anthropic: { name: "Anthropic", short: "A", color: "#c58b5c", description: "Claude models for nuanced, careful work.", docs: "https://docs.anthropic.com" },
+  gemini: { name: "Google Gemini", short: "G", color: "#668ad6", description: "Fast multimodal models from Google.", docs: "https://ai.google.dev" },
+  perplexity: { name: "Perplexity", short: "P", color: "#6d62b1", description: "Research-oriented answers with web context.", docs: "https://docs.perplexity.ai" },
+  mistral: { name: "Mistral", short: "M", color: "#d07b66", description: "Efficient open models for focused workflows.", docs: "https://docs.mistral.ai" },
+  groq: { name: "Groq", short: "GQ", color: "#ad6b9a", description: "Low-latency inference for fast iteration.", docs: "https://console.groq.com/docs" },
+};
 
 export default function ConnectServicePage() {
   const { serviceId } = useParams<{ serviceId: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [apiKey, setApiKey] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
-  const [service, setService] = useState<SupportedAIService | null>(null);
-  const [error, setError] = useState("");
+  const service = useMemo(() => serviceId ? providers[serviceId] : undefined, [serviceId]);
+  const isConnected = serviceId ? getConnectedServices().includes(serviceId) : false;
 
-  // Find the service based on serviceId
-  useEffect(() => {
-    const foundService = supportedServices.find(s => s.id === serviceId);
-    if (foundService) {
-      setService(foundService);
-    } else {
-      setError("Invalid service");
-    }
-  }, [serviceId]);
+  if (!service || !serviceId) return <div className="py-20 text-center"><p className="eyebrow">Provider not found</p><Button asChild className="mt-5"><Link to="/ai-services"><ArrowLeft className="h-4 w-4" /> Back to services</Link></Button></div>;
 
-  // Check if this service is already connected
-  useEffect(() => {
-    const checkConnection = async () => {
-      if (!user || !service) return;
-
-      try {
-        const { data, error } = await supabase
-          .from("user_ai_services")
-          .select("*")
-          .eq("user_id", user.id)
-          .eq("service_name", service.id)
-          .single();
-
-        if (error && error.code !== "PGRST116") {
-          console.error("Error checking connection:", error);
-          throw error;
-        }
-
-        setIsConnected(!!data);
-      } catch (err) {
-        console.error("Error checking service connection:", err);
-      }
-    };
-
-    checkConnection();
-  }, [user, service]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!apiKey.trim()) {
-      setError("API key is required");
-      return;
-    }
-
-    if (!service) {
-      setError("Invalid service");
-      return;
-    }
-
-    setIsSubmitting(true);
-    setError("");
-
-    try {
-      // Call the Supabase Edge Function to securely store the API key
-      const { data, error } = await supabase.functions.invoke("store-api-key", {
-        body: {
-          service_name: service.id,
-          api_key: apiKey,
-        },
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: `${service.name} connected successfully!`,
-        description: "Your API key has been securely stored.",
-      });
-
-      setIsConnected(true);
-      navigate("/ai-services");
-    } catch (error: any) {
-      console.error("Error connecting service:", error);
-      setError(error.message || "Failed to connect service. Please try again.");
-      toast({
-        title: "Connection failed",
-        description: error.message || "Failed to connect service. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-      setApiKey("");
-    }
+  const handleConnect = () => {
+    setConnectedService(serviceId, !isConnected);
+    toast.success(isConnected ? `${service.name} disconnected` : `${service.name} demo connection enabled`);
+    navigate("/ai-services");
   };
 
-  if (!service) {
-    return (
-      <div className="container mx-auto py-8">
-        <div className="flex items-center mb-6">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="mr-2"
-            onClick={() => navigate("/ai-services")}
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-2xl font-bold">Connect AI Service</h1>
-        </div>
-        
-        <Alert variant="destructive">
-          <AlertCircle className="h-5 w-5" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>
-            {error || "The requested service was not found."}
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex items-center mb-6">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="mr-2"
-          onClick={() => navigate("/ai-services")}
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </Button>
-        <h1 className="text-2xl font-bold">Connect {service.name}</h1>
-      </div>
-
-      <div className="max-w-xl mx-auto">
-        <Card>
-          <CardHeader className="flex flex-row items-center gap-4">
-            <img 
-              src={service.logo} 
-              alt={`${service.name} logo`} 
-              className="w-12 h-12 rounded-full object-cover"
-            />
-            <div>
-              <CardTitle>{service.name}</CardTitle>
-              <CardDescription>{service.description}</CardDescription>
-            </div>
-          </CardHeader>
-          
-          <CardContent>
-            <form onSubmit={handleSubmit}>
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="apiKey" className="block text-sm font-medium mb-1">
-                    {service.apiKeyTitle}
-                  </label>
-                  <Input
-                    id="apiKey"
-                    type="password"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder={`Enter your ${service.name} ${service.apiKeyTitle}`}
-                    className="w-full"
-                    required
-                  />
-                </div>
-                
-                {error && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-                
-                <div className="flex justify-between items-center">
-                  <a 
-                    href={service.authUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-primary flex items-center"
-                  >
-                    Get your API key <ExternalLink className="ml-1 h-3 w-3" />
-                  </a>
-                  
-                  <Button 
-                    type="submit" 
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? "Connecting..." : isConnected ? "Update Connection" : "Connect"}
-                  </Button>
-                </div>
-              </div>
-            </form>
-          </CardContent>
-          
-          <CardFooter className="bg-muted/40 flex flex-col items-start text-sm text-muted-foreground">
-            <p className="mb-2">Your API key will be securely stored and encrypted.</p>
-            <p>Note: This will enable integration with {service.name} for prompt generation and AI-assisted features.</p>
-          </CardFooter>
-        </Card>
-      </div>
-    </div>
+    <div className="page-enter mx-auto max-w-3xl"><Link to="/ai-services" className="mb-8 inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" /> Back to AI services</Link><div className="overflow-hidden rounded-[24px] bg-[#13213a] text-white shadow-xl"><div className="blueprint-grid border-b border-white/10 px-6 py-8 sm:px-10 sm:py-10"><div className="flex h-14 w-14 items-center justify-center rounded-2xl text-sm font-black text-white" style={{ backgroundColor: service.color }}>{service.short}</div><p className="eyebrow mt-7 text-[#79edd0]">Provider connection</p><h1 className="display-font mt-3 text-4xl font-semibold leading-none sm:text-5xl">Connect {service.name}.</h1><p className="mt-4 max-w-xl text-sm leading-6 text-slate-300">{service.description} Choose how this provider should be available to your prompt workflows.</p></div><div className="grid gap-8 bg-white p-6 text-foreground sm:p-10 lg:grid-cols-[1fr_.75fr]"><div><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent"><KeyRound className="h-4 w-4" /></div><div><h2 className="font-bold">Bring your own key</h2><p className="text-xs text-muted-foreground">Secure setup for production workspaces</p></div></div><div className="mt-6 rounded-2xl border border-accent/20 bg-accent/5 p-4"><div className="flex items-start gap-3"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-accent" /><div><p className="text-sm font-bold">No key is collected in this demo.</p><p className="mt-1 text-xs leading-5 text-muted-foreground">When deployed with the Cloudflare Worker architecture, keys should be accepted by an authorized server endpoint and stored in encrypted secret bindings — never in browser storage.</p></div></div></div><div className="mt-6 flex flex-wrap gap-3"><Button onClick={handleConnect} className="bg-accent text-accent-foreground hover:bg-accent/90">{isConnected ? "Disconnect demo status" : "Enable demo connection"}</Button><a href={service.docs} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-2 rounded-md border px-4 text-sm font-medium hover:bg-secondary">Read provider docs <ExternalLink className="h-3.5 w-3.5" /></a></div></div><aside className="rounded-2xl bg-secondary/60 p-5"><Badge variant="outline" className="border-accent/30 bg-accent/5 text-accent">{isConnected ? "Currently enabled" : "Not connected"}</Badge><h3 className="mt-5 text-lg font-bold">What happens next?</h3><ol className="mt-4 space-y-4 text-sm"><li className="flex gap-3"><span className="font-mono text-xs font-bold text-accent">01</span><span className="text-muted-foreground">Choose a model when you run a prompt.</span></li><li className="flex gap-3"><span className="font-mono text-xs font-bold text-accent">02</span><span className="text-muted-foreground">Keep provider-specific settings next to the workflow.</span></li><li className="flex gap-3"><span className="font-mono text-xs font-bold text-accent">03</span><span className="text-muted-foreground">Review output before it becomes a decision.</span></li></ol><div className="mt-6 flex items-center gap-2 border-t pt-4 text-xs text-muted-foreground"><LockKeyhole className="h-3.5 w-3.5 text-accent" /> Secret-safe by design</div></aside></div></div></div>
   );
 }
