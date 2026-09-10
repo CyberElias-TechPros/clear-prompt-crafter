@@ -1,15 +1,14 @@
-
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { Ad } from "@/lib/types";
+import { adsApi } from "@/lib/backend";
+import { Ad } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -44,7 +43,6 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { AlertTriangle, Plus, Trash } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
 
 const AdManagerPage = () => {
   const { user } = useAuth();
@@ -61,20 +59,27 @@ const AdManagerPage = () => {
   });
 
   const { data: ads, refetch } = useQuery({
-    queryKey: ["ads"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("ads")
-        .select("*");
-        
-      if (error) throw error;
-      return data as Ad[];
-    },
+    queryKey: ["admin-ads"],
+    queryFn: async () => (await adsApi.adminList()).items,
+    enabled: user?.role === "admin",
   });
+
+  if (user?.role !== "admin") {
+    return (
+      <div className="container py-8">
+        <Card className="max-w-md mx-auto">
+          <CardHeader className="text-center">
+            <AlertTriangle className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+            <CardTitle>Admins Only</CardTitle>
+            <CardDescription>You need administrator access to manage ads.</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
 
   const saveAd = async () => {
     try {
-      // Validate required fields
       if (!newAd.title || !newAd.content || !newAd.link_url) {
         toast({
           title: "Missing required fields",
@@ -83,18 +88,9 @@ const AdManagerPage = () => {
         });
         return;
       }
-      
-      const { error } = await supabase
-        .from("ads")
-        .insert([newAd]);
-        
-      if (error) throw error;
-      
-      toast({
-        title: "Ad created",
-        description: "The ad has been created successfully",
-      });
-      
+
+      await adsApi.create(newAd);
+      toast({ title: "Ad created", description: "The ad has been created successfully" });
       setIsAdDialogOpen(false);
       setNewAd({
         title: "",
@@ -105,65 +101,32 @@ const AdManagerPage = () => {
         is_active: true,
         link_url: "",
       });
-      
       refetch();
     } catch (error: any) {
-      console.error("Error creating ad:", error);
-      toast({
-        title: "Error creating ad",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error creating ad", description: error.message, variant: "destructive" });
     }
   };
 
-  const toggleAdStatus = async (id: string, currentStatus: boolean) => {
+  const toggleAdStatus = async (ad: Ad) => {
     try {
-      const { error } = await supabase
-        .from("ads")
-        .update({ is_active: !currentStatus })
-        .eq("id", id);
-        
-      if (error) throw error;
-      
+      await adsApi.update(ad.id, { is_active: !ad.is_active });
       toast({
-        title: `Ad ${!currentStatus ? "activated" : "deactivated"}`,
-        description: `The ad has been ${!currentStatus ? "activated" : "deactivated"} successfully`,
+        title: `Ad ${!ad.is_active ? "activated" : "deactivated"}`,
+        description: "The ad status has been updated",
       });
-      
       refetch();
     } catch (error: any) {
-      console.error("Error toggling ad status:", error);
-      toast({
-        title: "Error updating ad",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error updating ad", description: error.message, variant: "destructive" });
     }
   };
 
   const deleteAd = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from("ads")
-        .delete()
-        .eq("id", id);
-        
-      if (error) throw error;
-      
-      toast({
-        title: "Ad deleted",
-        description: "The ad has been deleted successfully",
-      });
-      
+      await adsApi.remove(id);
+      toast({ title: "Ad deleted", description: "The ad has been deleted successfully" });
       refetch();
     } catch (error: any) {
-      console.error("Error deleting ad:", error);
-      toast({
-        title: "Error deleting ad",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error deleting ad", description: error.message, variant: "destructive" });
     }
   };
 
@@ -181,9 +144,7 @@ const AdManagerPage = () => {
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Create New Advertisement</DialogTitle>
-              <DialogDescription>
-                Create a new advertisement to display on your platform
-              </DialogDescription>
+              <DialogDescription>Create a new advertisement to display on your platform</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
@@ -195,7 +156,7 @@ const AdManagerPage = () => {
                   placeholder="Enter ad title"
                 />
               </div>
-              
+
               <div className="grid gap-2">
                 <Label htmlFor="ad-content">Content</Label>
                 <Textarea
@@ -205,7 +166,7 @@ const AdManagerPage = () => {
                   placeholder="Enter ad content"
                 />
               </div>
-              
+
               <div className="grid gap-2">
                 <Label htmlFor="ad-image-url">Image URL (optional)</Label>
                 <Input
@@ -215,7 +176,7 @@ const AdManagerPage = () => {
                   placeholder="Enter image URL"
                 />
               </div>
-              
+
               <div className="grid gap-2">
                 <Label htmlFor="ad-link-url">Link URL</Label>
                 <Input
@@ -225,13 +186,13 @@ const AdManagerPage = () => {
                   placeholder="Enter link URL"
                 />
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="ad-size">Ad Size</Label>
-                  <Select 
-                    value={newAd.ad_size} 
-                    onValueChange={(value) => setNewAd({ ...newAd, ad_size: value as "small" | "medium" | "large" })}
+                  <Label>Ad Size</Label>
+                  <Select
+                    value={newAd.ad_size}
+                    onValueChange={(value) => setNewAd({ ...newAd, ad_size: value as Ad["ad_size"] })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select size" />
@@ -246,12 +207,14 @@ const AdManagerPage = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="grid gap-2">
-                  <Label htmlFor="ad-position">Ad Position</Label>
-                  <Select 
-                    value={newAd.ad_position} 
-                    onValueChange={(value) => setNewAd({ ...newAd, ad_position: value as "top" | "side" | "inline" | "bottom" })}
+                  <Label>Ad Position</Label>
+                  <Select
+                    value={newAd.ad_position}
+                    onValueChange={(value) =>
+                      setNewAd({ ...newAd, ad_position: value as Ad["ad_position"] })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select position" />
@@ -268,7 +231,7 @@ const AdManagerPage = () => {
                   </Select>
                 </div>
               </div>
-              
+
               <div className="flex items-center space-x-2">
                 <Switch
                   id="ad-active"
@@ -279,19 +242,19 @@ const AdManagerPage = () => {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAdDialogOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setIsAdDialogOpen(false)}>
+                Cancel
+              </Button>
               <Button onClick={saveAd}>Save</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
-      
+
       <Card>
         <CardHeader>
           <CardTitle>Advertisements</CardTitle>
-          <CardDescription>
-            Manage your platform advertisements
-          </CardDescription>
+          <CardDescription>Manage your platform advertisements</CardDescription>
         </CardHeader>
         <CardContent>
           {ads && ads.length > 0 ? (
@@ -312,24 +275,20 @@ const AdManagerPage = () => {
                     <TableCell>{ad.ad_position}</TableCell>
                     <TableCell>{ad.ad_size}</TableCell>
                     <TableCell>
-                      <span className={`px-2 py-1 text-xs rounded-full ${ad.is_active ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}>
+                      <span
+                        className={`px-2 py-1 text-xs rounded-full ${
+                          ad.is_active ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
                         {ad.is_active ? "Active" : "Inactive"}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => toggleAdStatus(ad.id, ad.is_active)}
-                        >
+                        <Button variant="outline" size="sm" onClick={() => toggleAdStatus(ad)}>
                           {ad.is_active ? "Deactivate" : "Activate"}
                         </Button>
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          onClick={() => deleteAd(ad.id)}
-                        >
+                        <Button variant="destructive" size="icon" onClick={() => deleteAd(ad.id)}>
                           <Trash className="h-4 w-4" />
                         </Button>
                       </div>

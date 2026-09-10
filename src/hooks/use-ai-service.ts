@@ -1,132 +1,105 @@
-
-import { useEffect, useState } from "react";
+import { useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { AIServicesResponse, ApiError, GenerateRequest } from "@/lib/api";
+import { aiApi } from "@/lib/backend";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
-interface AIServiceResponse {
+export interface GenerateResult {
   content: string;
   error?: string;
+  model?: string;
+  service?: string;
 }
 
+/**
+ * useAIService
+ *
+ * Talks to the Cloudflare Worker AI gateway. The platform ships with a
+ * zero-cost NVIDIA NIM key (free models), so generation works out of the box
+ * for every signed-in user. Users may also connect their own keys (BYOK); an
+ * active BYOK key for the requested service takes precedence and bypasses the
+ * free daily quota.
+ */
 export function useAIService() {
   const { user } = useAuth();
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [services, setServices] = useState<{
-    openai: boolean;
-    antropic: boolean;
-    perplexity: boolean;
-  }>({
-    openai: false,
-    antropic: false,
-    perplexity: false,
-  });
 
-  // Fetch connected services
-  const { data: connectedServices, isLoading } = useQuery({
+  const { data: services, isLoading } = useQuery<AIServicesResponse>({
     queryKey: ["ai-services", user?.id],
-    queryFn: async () => {
-      if (!user) return [];
-      
-      const { data, error } = await supabase
-        .from("user_ai_services")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("is_active", true);
-      
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => aiApi.services(),
     enabled: !!user,
   });
 
-  useEffect(() => {
-    if (connectedServices) {
-      const newServices = { openai: false, antropic: false, perplexity: false };
-      
-      connectedServices.forEach((service) => {
-        if (service.service_name === "openai") newServices.openai = true;
-        if (service.service_name === "antropic") newServices.antropic = true;
-        if (service.service_name === "perplexity") newServices.perplexity = true;
-      });
-      
-      setServices(newServices);
-    }
-  }, [connectedServices]);
+  const activeServiceNames = (services?.services ?? [])
+    .filter((s) => s.is_active)
+    .map((s) => s.service_name);
 
-  const generateWithAI = async (
-    prompt: string, 
-    service: "openai" | "antropic" | "perplexity" = "openai",
-    model?: string
-  ): Promise<AIServiceResponse> => {
-    if (!user) {
-      toast({
-        title: "Authentication required",
-        description: "Please sign in to use AI services.",
-        variant: "destructive",
-      });
-      return { content: "", error: "Authentication required" };
-    }
+  const platformAvailable = !!services?.platform?.available;
+  const remainingToday = services?.platform?.remaining_today ?? null;
 
-    if (!services[service]) {
-      toast({
-        title: "Service not connected",
-        description: `Please connect to ${service} in AI Services page first.`,
-        variant: "destructive",
-      });
-      return { content: "", error: "Service not connected" };
-    }
+  /** Pick the best service to route a generation through. */
+  const resolveService = useCallback(
+    (preferred?: string): string | undefined => {
+      if (preferred && activeServiceNames.includes(preferred)) return preferred;
+      // Prefer a user's own "nvidia" key if they connected one.
+      if (activeServiceNames.includes("nvidia")) return "nvidia";
+      // Default to the free platform key (service === undefined) when available.
+      if (platformAvailable) return undefined;
+      // Otherwise fall back to the first active BYOK key so BYOK-only setups work.
+      return activeServiceNames[0];
+    },
+    [activeServiceNames, platformAvailable],
+  );
 
-    setIsGenerating(true);
-
-    try {
-      const response = await fetch(`${process.env.SUPABASE_FUNCTIONS_URL || "https://fandkcurnirrnuecprtx.supabase.co/functions/v1"}/generate-ai-content`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-        },
-        body: JSON.stringify({
-          service,
-          prompt,
-          model,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.error) {
+  const generateWithAI = useCallback(
+    async (request: GenerateRequest & { service?: string }): Promise<GenerateResult> => {
+      if (!user) {
         toast({
-          title: "Generation error",
-          description: data.error,
+          title: "Authentication required",
+          description: "Please sign in to use AI services.",
           variant: "destructive",
         });
-        return { content: "", error: data.error };
+        return { content: "", error: "Authentication required" };
       }
 
-      return { content: data.content };
-    } catch (error) {
-      console.error("Error generating content:", error);
-      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
-      
-      toast({
-        title: "Generation error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-      
-      return { content: "", error: errorMessage };
-    } finally {
-      setIsGenerating(false);
-    }
-  };
+      const hasAnyByok = activeServiceNames.length > 0;
+      if (!platformAvailable && !hasAnyByok) {
+        toast({
+          title: "No AI service available",
+          description: "Connect an API key in AI Services to get started.",
+          variant: "destructive",
+        });
+        return { content: "", error: "No AI service available" };
+      }
+
+      try {
+        const payload: GenerateRequest = { ...request };
+        const service = resolveService(request.service);
+        if (service) payload.service = service;
+
+        const result = await aiApi.generate(payload);
+        return { content: result.content, model: result.model, service: result.service };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "An unexpected error occurred";
+        const status = error instanceof ApiError ? error.status : 0;
+        toast({
+          title: status === 429 ? "Daily limit reached" : "Generation error",
+          description: message,
+          variant: "destructive",
+        });
+        return { content: "", error: message };
+      }
+    },
+    [user, activeServiceNames, platformAvailable, resolveService],
+  );
 
   return {
     services,
-    isGenerating,
-    hasServices: Object.values(services).some(v => v),
     isLoading,
     generateWithAI,
+    platformAvailable,
+    remainingToday,
+    activeServiceNames,
+    hasAnyByok: activeServiceNames.length > 0,
   };
 }

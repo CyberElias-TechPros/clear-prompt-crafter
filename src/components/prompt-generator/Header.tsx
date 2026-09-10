@@ -1,5 +1,6 @@
 
 import React from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
@@ -34,27 +35,15 @@ const Header = ({
       </div>
       
       <div className="flex items-center space-x-4">
-        <Tabs defaultValue={activeTab} className="w-full max-w-md">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-md">
           <TabsList className="w-full">
-            <TabsTrigger
-              value="structured"
-              onClick={() => setActiveTab("structured")}
-              className="w-full"
-            >
+            <TabsTrigger value="structured" className="w-full">
               Structured
             </TabsTrigger>
-            <TabsTrigger
-              value="conversational"
-              onClick={() => setActiveTab("conversational")}
-              className="w-full"
-            >
+            <TabsTrigger value="conversational" className="w-full">
               Conversational
             </TabsTrigger>
-            <TabsTrigger
-              value="meta"
-              onClick={() => setActiveTab("meta")}
-              className="w-full"
-            >
+            <TabsTrigger value="meta" className="w-full">
               Meta Prompting
             </TabsTrigger>
           </TabsList>
@@ -71,14 +60,14 @@ const Header = ({
               {user?.email}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              Profile
+            <DropdownMenuItem asChild>
+              <Link to="/profile">Profile</Link>
             </DropdownMenuItem>
-            <DropdownMenuItem>
-              AI Services
+            <DropdownMenuItem asChild>
+              <Link to="/ai-services">AI Services</Link>
             </DropdownMenuItem>
-            <DropdownMenuItem>
-              Settings
+            <DropdownMenuItem asChild>
+              <Link to="/settings">Settings</Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => signOut()}>

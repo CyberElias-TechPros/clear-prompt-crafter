@@ -14,6 +14,7 @@ const AuthPage = () => {
   const { user, signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
+  const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -75,13 +76,13 @@ const AuthPage = () => {
     
     setIsLoading(true);
     try {
-      const { error } = await signUp(email, password);
+      const { error } = await signUp(email, password, fullName.trim() || undefined);
       if (error) {
         setAuthError(error.message);
         toast.error("Sign up failed: " + error.message);
       } else {
-        toast.success("Account created! Check your email for confirmation.");
-        setActiveTab("sign-in");
+        toast.success("Account created! You're now signed in.");
+        navigate("/dashboard");
       }
     } catch (error) {
       console.error("Sign up error:", error);
@@ -160,6 +161,16 @@ const AuthPage = () => {
                 </form>
               ) : (
                 <form onSubmit={handleSignUp} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-name">Full Name (optional)</Label>
+                    <Input
+                      id="signup-name"
+                      type="text"
+                      placeholder="Ada Lovelace"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                    />
+                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
                     <Input

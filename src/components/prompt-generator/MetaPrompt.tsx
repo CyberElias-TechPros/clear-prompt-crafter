@@ -9,9 +9,12 @@ import {
   RotateCcwIcon,
   ClipboardIcon,
   ArrowRightIcon,
+  SparklesIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
+import { useAIService } from "@/hooks/use-ai-service";
 
 interface MetaPromptProps {
   onPromptDataChange?: (sections: any[]) => void;
@@ -51,6 +54,8 @@ const clearFrameworkCriteria = [
 ];
 
 const MetaPrompt: React.FC<MetaPromptProps> = ({ onPromptDataChange }) => {
+  const { user } = useAuth();
+  const { generateWithAI } = useAIService();
   const [promptDraft, setPromptDraft] = useState("");
   const [analysis, setAnalysis] = useState<string>("");
   const [improvedPrompt, setImprovedPrompt] = useState<string>("");
@@ -73,22 +78,49 @@ const MetaPrompt: React.FC<MetaPromptProps> = ({ onPromptDataChange }) => {
     }
   }, [improvedPrompt, analysis, onPromptDataChange]);
 
-  const analyzePrompt = () => {
+  const analyzePrompt = async () => {
     if (promptDraft.trim() === "") return;
-    
+
     setIsAnalyzing(true);
     setAnalysis("");
     setImprovedPrompt("");
 
-    // Simulate analysis processing
-    setTimeout(() => {
-      const analysisResult = generateAnalysis(promptDraft);
-      setAnalysis(analysisResult.analysis);
-      setImprovedPrompt(analysisResult.improved);
-      setIsAnalyzing(false);
-      setActiveTab("analysis");
-      toast.success("Analysis complete!");
-    }, 1500);
+    // Try an AI-powered analysis first; fall back to the local heuristic when
+    // signed out or when generation fails.
+    if (user) {
+      const aiPrompt =
+        `Analyze the following prompt draft using the CLEAR framework (Concise, Logical, Explicit, Adaptive, Reflective). ` +
+        `First, give a Markdown section "# CLEAR Framework Analysis" with one "### <Letter>:" subsection per criterion ` +
+        `(use ✅ Good, ⚠️ Improvement needed, etc.), each with 1-2 bullet points. ` +
+        `Then output a second part starting with "# Improved Prompt" containing a rewritten, improved version of the prompt.\n\n` +
+        `PROMPT DRAFT:\n${promptDraft}`;
+
+      const result = await generateWithAI({ prompt: aiPrompt, max_tokens: 1200 });
+      if (result.content) {
+        const improvedIdx = result.content.search(/#\s*Improved Prompt/i);
+        let analysisPart = result.content;
+        let improvedPart = "";
+        if (improvedIdx >= 0) {
+          analysisPart = result.content.slice(0, improvedIdx);
+          improvedPart = result.content.slice(improvedIdx).replace(/#\s*Improved Prompt\s*/i, "");
+        }
+        setAnalysis(analysisPart.trim());
+        setImprovedPrompt(improvedPart.trim() || promptDraft);
+        setIsAnalyzing(false);
+        setActiveTab("analysis");
+        toast.success("AI analysis complete!");
+        return;
+      }
+    }
+
+    // Heuristic fallback (offline).
+    await new Promise((r) => setTimeout(r, 600));
+    const analysisResult = generateAnalysis(promptDraft);
+    setAnalysis(analysisResult.analysis);
+    setImprovedPrompt(analysisResult.improved);
+    setIsAnalyzing(false);
+    setActiveTab("analysis");
+    toast.success(user ? "Analysis complete (offline mode)." : "Analysis complete!");
   };
 
   const generateAnalysis = (prompt: string) => {

@@ -51,12 +51,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const navItems = [
     {
       title: "Dashboard",
-      href: "/",
+      href: "/dashboard",
       icon: <Home className="h-5 w-5" />,
     },
     {
-      title: "Prompts",
-      href: "/prompts",
+      title: "New Prompt",
+      href: "/prompts/new",
       icon: <MessageSquare className="h-5 w-5" />,
     },
     {
@@ -258,9 +258,9 @@ function UserMenu({ user, signOut }: { user: any; signOut: () => Promise<void> }
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full">
           <Avatar className="h-9 w-9">
-            <AvatarImage src={user.user_metadata?.avatar_url || ""} />
+            <AvatarImage src={user.avatar_url || ""} />
             <AvatarFallback>
-              {user.user_metadata?.full_name?.[0] || user.email?.[0] || "U"}
+              {user.full_name?.[0] || user.email?.[0] || "U"}
             </AvatarFallback>
           </Avatar>
         </Button>
@@ -269,7 +269,7 @@ function UserMenu({ user, signOut }: { user: any; signOut: () => Promise<void> }
         <div className="flex items-center justify-start gap-2 p-2">
           <div className="flex flex-col space-y-0.5">
             <p className="text-sm font-medium">
-              {user.user_metadata?.full_name || user.email}
+              {user.full_name || user.email}
             </p>
             <p className="text-xs text-muted-foreground">{user.email}</p>
           </div>

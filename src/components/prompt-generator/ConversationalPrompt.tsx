@@ -1,13 +1,15 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowRightIcon } from "lucide-react";
+import { ArrowRightIcon, SparklesIcon } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { useAIService } from "@/hooks/use-ai-service";
 
 type Message = {
   id: string;
@@ -21,7 +23,7 @@ const initialMessages: Message[] = [
     id: "1",
     role: "assistant",
     content:
-      "Hi there! I'm your prompt engineering assistant. Let's work together to craft an effective prompt for your project. What are you looking to build today?",
+      "Hi there! I'm your prompt engineering assistant, powered by AI. Let's work together to craft an effective prompt for your project. What are you looking to build today?",
     timestamp: new Date(),
   },
 ];
@@ -31,6 +33,8 @@ interface ConversationalPromptProps {
 }
 
 const ConversationalPrompt: React.FC<ConversationalPromptProps> = ({ onPromptDataChange }) => {
+  const { user } = useAuth();
+  const { generateWithAI, platformAvailable } = useAIService();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -50,64 +54,83 @@ const ConversationalPrompt: React.FC<ConversationalPromptProps> = ({ onPromptDat
       onPromptDataChange([
         {
           type: "conversation",
-          content: finalPrompt
-        }
+          content: finalPrompt,
+        },
       ]);
     }
   }, [finalPrompt, onPromptDataChange]);
 
-  const handleSend = () => {
-    if (input.trim() === "") return;
+  // Offline heuristic fallback so the conversation still flows without a backend.
+  const getLocalResponse = (userInput: string): string => {
+    const lower = userInput.toLowerCase();
+    if (lower.includes("login") || lower.includes("authentication")) {
+      return "I see you're working on authentication! Let's craft a prompt for that. Consider including:\n\n• What framework you're using (React, Vue, etc.)\n• Authentication method (JWT, OAuth, etc.)\n• Specific features (social login, 2FA, etc.)\n• Design requirements\n\nWould you like me to draft a structured prompt based on this information?";
+    }
+    if (lower.includes("help") || lower.includes("confused")) {
+      return "I'm here to help! To create an effective prompt, try to include:\n\n1. Context: What are you building and what technologies are you using?\n2. Task: What specific component or feature do you need?\n3. Guidelines: Any particular coding style or libraries to use?\n4. Constraints: Any limitations or things to avoid?\n\nLet's start with what you're trying to build.";
+    }
+    if (lower.includes("example") || lower.includes("sample")) {
+      return "Here's a sample structured prompt:\n\n**Context:** You are a front-end developer working on a React e-commerce website using Tailwind CSS.\n\n**Task:** Create a product card component that displays an image, title, price, and 'Add to Cart' button.\n\n**Guidelines:** Use Tailwind for styling, keep the design minimalist and modern, ensure it's fully responsive.\n\n**Constraints:** Don't use any third-party UI libraries, ensure accessibility compliance.\n\nWould you like to use this as a template?";
+    }
+    return "I understand you're looking for assistance with prompt engineering. Could you provide more details about your project? What are you trying to build, what technologies are you using, and what specific guidance do you need?";
+  };
+
+  const handleSend = async () => {
+    const trimmed = input.trim();
+    if (trimmed === "" || isGenerating) return;
 
     const userMessage: Message = {
       id: uuidv4(),
       role: "user",
-      content: input,
+      content: trimmed,
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    const nextMessages = [...messages, userMessage];
+    setMessages(nextMessages);
     setInput("");
     setIsGenerating(true);
 
-    setTimeout(() => {
-      const assistantMessage: Message = {
-        id: uuidv4(),
-        role: "assistant",
-        content: getAssistantResponse(input),
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
-      setIsGenerating(false);
-      
-      const updatedConversation = [...messages, userMessage, assistantMessage]
-        .map(msg => `${msg.role.toUpperCase()}: ${msg.content}`)
-        .join("\n\n");
-      
-      setFinalPrompt(updatedConversation);
-    }, 1000);
-  };
+    let assistantContent = "";
+    let usingAI = false;
 
-  const getAssistantResponse = (userInput: string): string => {
-    const userInputLower = userInput.toLowerCase();
-    
-    if (userInputLower.includes("hello") || userInputLower.includes("hi")) {
-      return "Hello! How can I help you craft an effective prompt today?";
+    // Use the AI backend when the user is signed in. Fall back to local heuristics otherwise.
+    if (user) {
+      const history = nextMessages.slice(-12).map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
+      const result = await generateWithAI({ messages: history, max_tokens: 800 });
+      if (result.content) {
+        assistantContent = result.content;
+        usingAI = true;
+      }
     }
-    
-    if (userInputLower.includes("login") || userInputLower.includes("authentication")) {
-      return "I see you're working on authentication! Let's craft a prompt for that. Consider including:\n\n• What framework you're using (React, Vue, etc.)\n• Authentication method (JWT, OAuth, etc.)\n• Specific features (social login, 2FA, etc.)\n• Design requirements\n\nWould you like me to draft a structured prompt based on this information?";
+
+    if (!assistantContent) {
+      // Graceful degradation (signed out, offline, or quota exhausted).
+      await new Promise((r) => setTimeout(r, 500));
+      assistantContent = getLocalResponse(trimmed);
     }
-    
-    if (userInputLower.includes("help") || userInputLower.includes("confused")) {
-      return "I'm here to help! To create an effective prompt, try to include:\n\n1. Context: What are you building and what technologies are you using?\n2. Task: What specific component or feature do you need?\n3. Guidelines: Any particular coding style or libraries to use?\n4. Constraints: Any limitations or things to avoid?\n\nLet's start with what you're trying to build.";
+
+    const assistantMessage: Message = {
+      id: uuidv4(),
+      role: "assistant",
+      content: assistantContent,
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, assistantMessage]);
+    setIsGenerating(false);
+
+    const updatedConversation = [...nextMessages, assistantMessage]
+      .map((msg) => `${msg.role.toUpperCase()}: ${msg.content}`)
+      .join("\n\n");
+    setFinalPrompt(updatedConversation);
+
+    if (!usingAI && user && !platformAvailable) {
+      toast.info("Using offline assistant. Connect an AI service for smarter help.");
     }
-    
-    if (userInputLower.includes("example") || userInputLower.includes("sample")) {
-      return "Here's a sample structured prompt:\n\n**Context:** You are a front-end developer working on a React e-commerce website using Tailwind CSS.\n\n**Task:** Create a product card component that displays an image, title, price, and 'Add to Cart' button.\n\n**Guidelines:** Use Tailwind for styling, keep the design minimalist and modern, ensure it's fully responsive.\n\n**Constraints:** Don't use any third-party UI libraries, ensure accessibility compliance.\n\nWould you like to use this as a template?";
-    }
-    
-    return "I understand you're looking for assistance with prompt engineering. Could you provide more details about your project? What are you trying to build, what technologies are you using, and what specific guidance do you need?";
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -119,9 +142,8 @@ const ConversationalPrompt: React.FC<ConversationalPromptProps> = ({ onPromptDat
 
   const copyConversation = () => {
     const conversationText = messages
-      .map(msg => `${msg.role.toUpperCase()}: ${msg.content}`)
+      .map((msg) => `${msg.role.toUpperCase()}: ${msg.content}`)
       .join("\n\n");
-    
     navigator.clipboard.writeText(conversationText);
     toast.success("Conversation copied to clipboard");
   };
@@ -136,17 +158,13 @@ const ConversationalPrompt: React.FC<ConversationalPromptProps> = ({ onPromptDat
                 key={message.id}
                 className={cn(
                   "flex flex-col space-y-2 max-w-[80%]",
-                  message.role === "user"
-                    ? "ml-auto items-end"
-                    : "mr-auto items-start"
+                  message.role === "user" ? "ml-auto items-end" : "mr-auto items-start"
                 )}
               >
                 <div className="flex items-center space-x-2">
                   {message.role === "assistant" ? (
                     <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-purple-100 text-purple-700">
-                        AI
-                      </AvatarFallback>
+                      <AvatarFallback className="bg-purple-100 text-purple-700">AI</AvatarFallback>
                     </Avatar>
                   ) : (
                     <Badge variant="outline" className="bg-purple-50">
@@ -163,9 +181,7 @@ const ConversationalPrompt: React.FC<ConversationalPromptProps> = ({ onPromptDat
                 <div
                   className={cn(
                     "px-4 py-3 rounded-lg ",
-                    message.role === "user"
-                      ? "bg-purple-600 text-white"
-                      : "bg-muted"
+                    message.role === "user" ? "bg-purple-600 text-white" : "bg-muted"
                   )}
                 >
                   <p className="whitespace-pre-line">{message.content}</p>
@@ -175,9 +191,7 @@ const ConversationalPrompt: React.FC<ConversationalPromptProps> = ({ onPromptDat
             {isGenerating && (
               <div className="flex space-x-2 items-center">
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-purple-100 text-purple-700">
-                    AI
-                  </AvatarFallback>
+                  <AvatarFallback className="bg-purple-100 text-purple-700">AI</AvatarFallback>
                 </Avatar>
                 <div className="flex space-x-1 items-center">
                   <div className="h-2 w-2 bg-purple-500 rounded-full animate-pulse"></div>
@@ -193,7 +207,7 @@ const ConversationalPrompt: React.FC<ConversationalPromptProps> = ({ onPromptDat
 
       <div className="mt-4 flex items-center space-x-2">
         <Input
-          placeholder="Type your message..."
+          placeholder={user ? "Type your message..." : "Sign in for AI-powered help, or type to continue offline..."}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -205,18 +219,22 @@ const ConversationalPrompt: React.FC<ConversationalPromptProps> = ({ onPromptDat
           disabled={input.trim() === "" || isGenerating}
           className="bg-purple-600 hover:bg-purple-700"
         >
-          <ArrowRightIcon className="h-4 w-4" />
+          {isGenerating ? (
+            <SparklesIcon className="h-4 w-4 animate-pulse" />
+          ) : (
+            <ArrowRightIcon className="h-4 w-4" />
+          )}
         </Button>
       </div>
 
       <div className="mt-4 flex justify-end">
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           onClick={copyConversation}
           disabled={messages.length <= 1}
         >
-          Save Conversation
+          Copy Conversation
         </Button>
       </div>
     </div>

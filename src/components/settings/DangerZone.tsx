@@ -16,30 +16,29 @@ import { Input } from "@/components/ui/input";
 import { Trash2 } from "lucide-react";
 
 export function DangerZone() {
-  const { user, signOut } = useAuth();
+  const { deleteAccount } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
-    
+
     try {
-      // This is a placeholder - in a real app, you would call an edge function
-      // to delete the user's account and all associated data
-      
+      const { error } = await deleteAccount();
+      if (error) throw error;
+
       toast({
         title: "Account deleted",
-        description: "Your account has been successfully deleted.",
+        description: "Your account and all associated data have been permanently deleted.",
       });
-      
-      // Sign the user out after account deletion
-      await signOut();
-    } catch (error) {
+      // deleteAccount clears the session; navigation back to landing happens via the auth guard.
+      window.location.href = "/";
+    } catch (error: any) {
       console.error("Error deleting account:", error);
       toast({
         title: "Deletion failed",
-        description: "There was an error deleting your account. Please try again.",
+        description: error?.message || "There was an error deleting your account. Please try again.",
         variant: "destructive",
       });
     } finally {

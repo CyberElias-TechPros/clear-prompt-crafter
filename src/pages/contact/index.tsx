@@ -6,13 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Mail, MessageSquare, Send } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { contactApi } from "@/lib/backend";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function ContactPage() {
   const { user } = useAuth();
   const [formData, setFormData] = useState({
-    name: user?.user_metadata?.full_name || "",
+    name: user?.full_name || "",
     email: user?.email || "",
     subject: "",
     message: "",
@@ -29,21 +29,11 @@ export default function ContactPage() {
     setIsSubmitting(true);
 
     try {
-      // Send contact form data to database
-      if (user) {
-        await supabase.from("user_history").insert({
-          user_id: user.id,
-          action_type: "contact_form",
-          data: {
-            subject: formData.subject,
-            message: formData.message,
-          }
-        });
-      }
+      await contactApi.send(formData);
 
       // Reset form and show success message
       setFormData({
-        name: user?.user_metadata?.full_name || "",
+        name: user?.full_name || "",
         email: user?.email || "",
         subject: "",
         message: "",
@@ -53,11 +43,11 @@ export default function ContactPage() {
         title: "Message sent successfully",
         description: "We've received your message and will get back to you soon!",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting form:", error);
       toast({
         title: "Error sending message",
-        description: "There was a problem sending your message. Please try again.",
+        description: error?.message || "There was a problem sending your message. Please try again.",
         variant: "destructive",
       });
     } finally {

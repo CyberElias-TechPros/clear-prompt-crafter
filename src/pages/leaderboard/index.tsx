@@ -1,6 +1,7 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { leaderboardApi } from "@/lib/backend";
+import { LeaderboardUser } from "@/lib/api";
 
 import {
   Card,
@@ -15,22 +16,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Trophy, Medal, Award, Crown } from "lucide-react";
 import { AdBanner } from "@/components/ads";
 
-type LeaderboardUser = {
-  user_id: string;
-  full_name: string | null;
-  avatar_url: string | null;
-  total_points: number;
-  badge_count: number;
-};
-
 export default function LeaderboardPage() {
   const { data: leaderboard, isLoading, error } = useQuery({
     queryKey: ["leaderboard"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_leaderboard");
-      
-      if (error) throw error;
-      return data as LeaderboardUser[];
+      const { items } = await leaderboardApi.get();
+      return items as LeaderboardUser[];
     },
   });
 
