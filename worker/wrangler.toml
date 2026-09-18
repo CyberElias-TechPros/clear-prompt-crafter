@@ -18,7 +18,7 @@ compatibility_date = "2025-05-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "prompt-gineer-db"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "38d5f799-0657-4e76-8c14-c1362c8a3c31"
 
 [vars]
 # Comma-separated list of allowed browser origins, or "*" for any origin.
