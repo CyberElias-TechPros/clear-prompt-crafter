@@ -5,6 +5,10 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
+      "source": "/api/:path*",
+      "destination": "https://prompt-gineer-api.autumn-surf-21ec.workers.dev/api/:path*"
+    },
+    {
       "source": "/((?!assets/)(?!.*\\..*).*)",
       "destination": "/index.html"
     }
