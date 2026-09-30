@@ -1,14 +1,22 @@
-name: Deploy backend
+name: Deploy backend and frontend
 
-# Deploys worker/prompt-gineer-api on push to main. Schema lives in
-# worker/schema.sql (db:init pattern, no migrations dir). Requires repo
-# secrets CF_API_TOKEN + CF_ACCOUNT_ID (Admin account).
+# Backend: prompt-gineer-api (Admin account), CF_API_TOKEN + CF_ACCOUNT_ID.
+# Frontend: Vercel production deploy as the token owner, which bypasses the
+# Hobby collaborators block on git-triggered builds. Requires repo secrets
+# VERCEL_TOKEN + VERCEL_ORG_ID + VERCEL_PROJECT_ID.
 
 on:
   push:
     branches: [main]
     paths:
       - "worker/**"
+      - "src/**"
+      - "public/**"
+      - "index.html"
+      - "package.json"
+      - "package-lock.json"
+      - "vite.config.ts"
+      - "vercel.json"
       - ".github/workflows/deploy-backend.yml"
   workflow_dispatch:
 
@@ -45,3 +53,21 @@ jobs:
           body="$(curl -fsS https://prompt-gineer-api.autumn-surf-21ec.workers.dev/api/health)"
           echo "$body"
           echo "$body" | grep -q '"database":true' || { echo "::error::prompt-gineer-api health check failed"; exit 1; }
+
+  deploy-frontend:
+    name: Deploy Vercel frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy production frontend
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: --prod
+      - name: Verify proxied API
+        run: |
+          body="$(curl -fsS https://prompt.freegameplay.site/api/health)"
+          echo "$body"
+          echo "$body" | grep -q '"database":true' || { echo "::error::frontend /api proxy check failed"; exit 1; }
