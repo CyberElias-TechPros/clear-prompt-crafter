@@ -30,9 +30,11 @@ FREE_DAILY_LIMIT = "5"
 # Comma-separated fallback chain of zero-cost NVIDIA NIM models.
 NVIDIA_MODELS = "meta/llama-3.1-8b-instruct,mistralai/mistral-7b-instruct-v0.3,meta/llama-3.3-70b-instruct,nvidia/llama-3.1-nemotron-70b-instruct"
 NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1"
-# Platform AI key (free NVIDIA NIM tier). Prefer `wrangler secret put NVIDIA_API_KEY`
-# for production; a secret with this name overrides the var below.
-NVIDIA_API_KEY = "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"
+# NVIDIA_API_KEY is NOT a var here: set it as a Worker secret so it is
+# encrypted at rest (secrets override vars with the same name):
+#   npx wrangler secret put NVIDIA_API_KEY
+# A var must not exist under this name, or secret creation conflicts with
+# the existing binding (Cloudflare error 10053).
 
 [observability]
 enabled = true
