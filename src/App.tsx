@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import PageLayout from "./components/layout/PageLayout";
+import MainLayout from "./components/layout/MainLayout";
 import Index from "./pages/Index";
 import LandingPage from "./pages/landing";
 import AuthPage from "./pages/auth";
@@ -39,12 +40,10 @@ const App = () => (
             <Route path="/" element={<LandingPage />} />
             <Route path="/auth" element={<AuthPage />} />
             
-            {/* Protected routes with PageLayout */}
+            {/* Protected application routes */}
             <Route path="/dashboard" element={
               <ProtectedRoute>
-                <PageLayout>
-                  <Index />
-                </PageLayout>
+                <Index />
               </ProtectedRoute>
             } />
             <Route path="/ai-services" element={
@@ -77,16 +76,16 @@ const App = () => (
             } />
             <Route path="/prompts/new" element={
               <ProtectedRoute>
-                <PageLayout>
+                <MainLayout>
                   <NewPromptPage />
-                </PageLayout>
+                </MainLayout>
               </ProtectedRoute>
             } />
             <Route path="/templates/new" element={
               <ProtectedRoute>
-                <PageLayout>
+                <MainLayout>
                   <NewTemplatePage />
-                </PageLayout>
+                </MainLayout>
               </ProtectedRoute>
             } />
             <Route path="/admin/ads" element={

@@ -19,7 +19,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Heart, Eye, Copy, Calendar, Send, MessageSquare } from "lucide-react";
-import { AdBanner } from "@/components/ads";
 
 interface CommunityDetailProps {
   kind: "prompt" | "template";
@@ -56,7 +55,7 @@ export default function CommunityDetailPage({ kind }: CommunityDetailProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`${kind}-details`, id] });
     },
-    onError: (err: any) => toast.error(`Error: ${err.message}`),
+    onError: (error: unknown) => toast.error(error instanceof Error ? `Error: ${error.message}` : "Something went wrong. Please try again."),
   });
 
   const commentMutation = useMutation({
@@ -66,7 +65,7 @@ export default function CommunityDetailPage({ kind }: CommunityDetailProps) {
       refetchComments();
       toast.success("Comment posted!");
     },
-    onError: (err: any) => toast.error(`Error posting comment: ${err.message}`),
+    onError: (error: unknown) => toast.error(error instanceof Error ? `Error posting comment: ${error.message}` : "Couldn't post your comment. Please try again."),
   });
 
   const copyItem = () => {
@@ -126,8 +125,6 @@ export default function CommunityDetailPage({ kind }: CommunityDetailProps) {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
-
-        <AdBanner size="small" position="top" className="mb-6" />
 
         <Card>
           <CardHeader>

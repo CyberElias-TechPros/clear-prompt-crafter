@@ -48,7 +48,11 @@ The app now runs end-to-end on Vercel + Cloudflare with a working free AI tier.
   only ever used server-side. BYOK use bypasses the free quota.
 - **Gamification** — Points and badges for creating, liking, and commenting; live leaderboard.
 - **Accounts** — Sign up/in, change password, export your data, delete your account.
-- **Admin** — Ad management for users whose email is in `ADMIN_EMAILS`.
+- **Admin** — First-party promotional content management for users whose email is in `ADMIN_EMAILS`.
+
+### Advertising safety
+
+The web app's first-party promotional banners are **disabled by default**, and no ad slots are currently rendered in the public experience. They are not Google-served ads, and this repository does not include the Android client or the Google Mobile Ads / AdMob SDK. Keep banners off while reviewing content and placement suitability; do not treat this web change as a substitute for updating and resubmitting the Android release that received the Play policy notice. The banner component fails closed unless `VITE_ENABLE_ADS=true` is explicitly set after review. User-created prompt feeds and detail pages do not include ad placements.
 
 ---
 

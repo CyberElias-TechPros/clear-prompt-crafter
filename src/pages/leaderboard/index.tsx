@@ -14,7 +14,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Trophy, Medal, Award, Crown } from "lucide-react";
-import { AdBanner } from "@/components/ads";
 
 export default function LeaderboardPage() {
   const { data: leaderboard, isLoading, error } = useQuery({
@@ -60,7 +59,6 @@ export default function LeaderboardPage() {
             <Skeleton className="h-4 w-96 mx-auto" />
           </div>
           
-          <AdBanner size="small" position="top" className="mx-auto" />
           
           <div className="space-y-4">
             {[1, 2, 3, 4, 5].map((i) => (
@@ -109,8 +107,6 @@ export default function LeaderboardPage() {
             Top prompt engineers in our community
           </p>
         </div>
-        
-        <AdBanner size="small" position="top" className="mx-auto" />
         
         {(!leaderboard || leaderboard.length === 0) ? (
           <Card className="max-w-md mx-auto">

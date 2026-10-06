@@ -1,7 +1,10 @@
 import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import type { ApiUser } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ModeToggle } from "@/components/ui/mode-toggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,236 +13,196 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ModeToggle } from "@/components/ui/mode-toggle";
+import { toast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import {
-  Home,
-  Sparkles,
-  Award,
-  Users,
-  Settings,
+  ArrowRight,
+  ChevronDown,
+  FilePlus2,
+  LayoutDashboard,
   LogOut,
   Menu,
   PenTool,
-  User,
-  LayoutDashboard,
+  Settings,
+  Sparkles,
+  Trophy,
   UserCog,
+  UserRound,
+  UsersRound,
+  X,
 } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
-import AdBanner from "@/components/ads/AdBanner";
 
 interface PageLayoutProps {
   children: React.ReactNode;
 }
 
-export default function PageLayout({ children }: PageLayoutProps) {
+const PageLayout = ({ children }: PageLayoutProps) => {
   const { user, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
-  const isAdmin = user?.role === "admin";
+  const links = [
+    ...(user ? [
+      { label: "Workspace", href: "/dashboard", icon: LayoutDashboard },
+      { label: "New prompt", href: "/prompts/new", icon: FilePlus2 },
+    ] : []),
+    { label: "Community", href: "/community", icon: UsersRound },
+    { label: "Leaderboard", href: "/leaderboard", icon: Trophy },
+    ...(user ? [{ label: "AI services", href: "/ai-services", icon: Sparkles }] : []),
+    ...(user?.role === "admin" ? [{ label: "Ad manager", href: "/admin/ads", icon: UserCog }] : []),
+  ];
 
   const handleSignOut = async () => {
     try {
       await signOut();
-      toast({
-        title: "Signed out successfully",
-        description: "You have been signed out of your account.",
-      });
+      toast({ title: "Signed out", description: "You have been signed out of your account." });
       navigate("/");
     } catch (error) {
       console.error("Error signing out:", error);
-      toast({
-        title: "Sign out failed",
-        description: "There was an error signing out. Please try again.",
-        variant: "destructive",
-      });
+      toast({ title: "Sign out failed", description: "Please try again.", variant: "destructive" });
     }
   };
 
-  const navItems = [
-    { title: "Dashboard", path: "/dashboard", icon: <LayoutDashboard className="w-5 h-5" /> },
-    { title: "AI Services", path: "/ai-services", icon: <Sparkles className="w-5 h-5" /> },
-    { title: "Community", path: "/community", icon: <Users className="w-5 h-5" /> },
-    { title: "Leaderboard", path: "/leaderboard", icon: <Award className="w-5 h-5" /> },
-  ];
-
-  const adminItems = [
-    { title: "Ad Manager", path: "/admin/ads", icon: <UserCog className="w-5 h-5" /> },
-  ];
-
   return (
-    <div className="flex flex-col min-h-screen">
-      <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur-sm">
-        <div className="container flex items-center justify-between h-16 px-4">
-          <div className="flex items-center gap-6">
-            <Link to="/" className="flex items-center gap-2">
-              <PenTool className="w-6 h-6 text-primary" />
-              <span className="font-bold">Prompt-Gineer</span>
-            </Link>
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <header className="sticky top-0 z-40 border-b border-border/80 bg-background/90 backdrop-blur-xl">
+        <div className="mx-auto flex h-[68px] max-w-[1320px] items-center justify-between px-4 sm:px-7">
+          <Link to="/" className="group flex shrink-0 items-center gap-2.5" aria-label="Prompt-Gineer home">
+            <span className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-[#24223b] text-white shadow-sm transition-transform group-hover:-rotate-3">
+              <PenTool className="h-4 w-4" strokeWidth={2.2} />
+            </span>
+            <span className="text-[15px] font-extrabold tracking-[-0.05em]">Prompt-Gineer</span>
+          </Link>
 
-            <nav className="hidden md:flex md:gap-6">
-              {navItems.map((item) => (
+          <nav className="hidden items-center gap-1 lg:flex" aria-label="Main navigation">
+            {links.map((link) => {
+              const active = location.pathname === link.href || location.pathname.startsWith(`${link.href}/`);
+              return (
                 <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`flex items-center gap-1 text-sm font-medium transition-colors hover:text-primary
-                    ${location.pathname === item.path ? "text-primary" : "text-muted-foreground"}`}
-                >
-                  {item.title}
-                </Link>
-              ))}
-              {isAdmin && adminItems.map((item) => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`flex items-center gap-1 text-sm font-medium transition-colors hover:text-primary
-                    ${location.pathname === item.path ? "text-primary" : "text-muted-foreground"}`}
-                >
-                  {item.title}
-                </Link>
-              ))}
-            </nav>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <ModeToggle />
-            
-            {user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="relative w-8 h-8 rounded-full"
-                  >
-                    <Avatar className="w-8 h-8">
-                      <AvatarImage src={user.avatar_url || ""} />
-                      <AvatarFallback>
-                        {(user.full_name || user.email)?.[0]?.toUpperCase() || "U"}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link to="/profile" className="flex items-center gap-2 cursor-pointer">
-                      <User className="w-4 h-4" />
-                      Profile
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/settings" className="flex items-center gap-2 cursor-pointer">
-                      <Settings className="w-4 h-4" />
-                      Settings
-                    </Link>
-                  </DropdownMenuItem>
-                  {isAdmin && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuLabel>Admin</DropdownMenuLabel>
-                      {adminItems.map((item) => (
-                        <DropdownMenuItem key={item.path} asChild>
-                          <Link to={item.path} className="flex items-center gap-2 cursor-pointer">
-                            {item.icon}
-                            {item.title}
-                          </Link>
-                        </DropdownMenuItem>
-                      ))}
-                    </>
+                  key={link.href}
+                  to={link.href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "inline-flex h-10 items-center gap-2 rounded-xl px-3.5 text-[12px] font-semibold transition-colors",
+                    active ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    className="flex items-center gap-2 cursor-pointer"
-                    onClick={handleSignOut}
-                  >
-                    <LogOut className="w-4 h-4" />
-                    Sign out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Button asChild size="sm">
-                <Link to="/auth">Sign in</Link>
+                >
+                  <link.icon className="h-3.5 w-3.5" />
+                  {link.label}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="flex items-center gap-2 sm:gap-3">
+            <ModeToggle />
+            {user && (
+              <Button asChild size="sm" className="hidden h-9 rounded-xl px-3.5 sm:inline-flex">
+                <Link to="/prompts/new"><FilePlus2 className="mr-1.5 h-3.5 w-3.5" />New prompt</Link>
               </Button>
             )}
-
+            {user ? (
+              <AccountMenu user={user} signOut={handleSignOut} />
+            ) : (
+              <div className="hidden items-center gap-2 sm:flex">
+                <Button asChild variant="ghost" size="sm" className="rounded-xl text-muted-foreground">
+                  <Link to="/auth">Sign in</Link>
+                </Button>
+                <Button asChild size="sm" className="h-9 rounded-xl px-4">
+                  <Link to="/auth">Get started <ArrowRight className="ml-1 h-3.5 w-3.5" /></Link>
+                </Button>
+              </div>
+            )}
             <Button
-              variant="ghost"
+              type="button"
+              variant="outline"
               size="icon"
-              className="md:hidden"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="h-9 w-9 rounded-xl lg:hidden"
+              aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+              aria-expanded={mobileMenuOpen}
+              onClick={() => setMobileMenuOpen((open) => !open)}
             >
-              <Menu className="w-5 h-5" />
-              <span className="sr-only">Toggle menu</span>
+              {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
             </Button>
           </div>
         </div>
-        
-        {isMobileMenuOpen && (
-          <div className="container pb-3 md:hidden animate-in slide-in-from-top">
-            <nav className="grid gap-2">
-              {navItems.map((item) => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent
-                    ${location.pathname === item.path ? "bg-accent" : ""}`}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  {item.icon}
-                  {item.title}
-                </Link>
-              ))}
-              {isAdmin && adminItems.map((item) => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent
-                    ${location.pathname === item.path ? "bg-accent" : ""}`}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  {item.icon}
-                  {item.title}
-                </Link>
-              ))}
+
+        {mobileMenuOpen && (
+          <div className="border-t border-border bg-background px-4 py-3 shadow-lg lg:hidden">
+            <nav className="mx-auto grid max-w-[1320px] gap-1" aria-label="Mobile navigation">
+              {links.map((link) => {
+                const active = location.pathname === link.href || location.pathname.startsWith(`${link.href}/`);
+                return (
+                  <Link
+                    key={link.href}
+                    to={link.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    aria-current={active ? "page" : undefined}
+                    className={cn("flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium", active ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground")}
+                  >
+                    <link.icon className="h-4 w-4" />
+                    {link.label}
+                  </Link>
+                );
+              })}
+              {!user && (
+                <Button asChild className="mt-2 rounded-xl">
+                  <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>Sign in or create an account <ArrowRight className="ml-1 h-4 w-4" /></Link>
+                </Button>
+              )}
             </nav>
           </div>
         )}
       </header>
 
-      <main className="flex-1">
-        {children}
-      </main>
-      
-      <AdBanner size="small" position="bottom" className="mx-auto max-w-4xl my-4" />
-      
-      <footer className="py-6 border-t bg-background/80 backdrop-blur-sm">
-        <div className="container flex flex-col items-center justify-between gap-4 px-4 text-center md:flex-row md:text-left">
-          <div className="flex items-center gap-2">
-            <PenTool className="w-5 h-5 text-primary" />
-            <p className="text-sm font-medium">Prompt-Gineer</p>
-          </div>
-          
-          <p className="text-xs text-muted-foreground">
-            &copy; {new Date().getFullYear()} Prompt-Gineer. All rights reserved.
-          </p>
-          
-          <nav className="flex gap-4 text-sm text-muted-foreground">
-            <Link to="/terms" className="hover:text-primary">
-              Terms
-            </Link>
-            <Link to="/privacy" className="hover:text-primary">
-              Privacy
-            </Link>
-            <Link to="/contact" className="hover:text-primary">
-              Contact
-            </Link>
+      <main className="flex-1">{children}</main>
+
+      <footer className="mt-auto border-t border-border/80 bg-card/55">
+        <div className="mx-auto flex max-w-[1320px] flex-col gap-4 px-4 py-6 text-center sm:flex-row sm:items-center sm:justify-between sm:px-7 sm:text-left">
+          <Link to="/" className="flex items-center justify-center gap-2 text-xs font-bold tracking-[-0.03em] text-foreground sm:justify-start">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#24223b] text-white"><PenTool className="h-3.5 w-3.5" /></span>
+            Prompt-Gineer
+          </Link>
+          <p className="text-[11px] text-muted-foreground">A clearer way to work with AI, one prompt at a time.</p>
+          <nav className="flex justify-center gap-4 text-xs text-muted-foreground sm:justify-end" aria-label="Footer navigation">
+            <Link to="/terms" className="transition-colors hover:text-primary">Terms</Link>
+            <Link to="/privacy" className="transition-colors hover:text-primary">Privacy</Link>
+            <Link to="/contact" className="transition-colors hover:text-primary">Contact</Link>
           </nav>
         </div>
       </footer>
     </div>
   );
+};
+
+function AccountMenu({ user, signOut }: { user: ApiUser; signOut: () => Promise<void> }) {
+  const initials = (user.full_name || user.email).slice(0, 1).toUpperCase();
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="h-10 gap-2 rounded-xl px-1.5 sm:px-2" aria-label="Open account menu">
+          <Avatar className="h-8 w-8 border border-border">
+            <AvatarImage src={user.avatar_url || ""} alt={user.full_name || ""} />
+            <AvatarFallback className="bg-[#eeecff] text-xs font-bold text-[#5548be]">{initials}</AvatarFallback>
+          </Avatar>
+          <span className="hidden max-w-[120px] truncate text-xs font-semibold sm:block">{user.full_name || "Account"}</span>
+          <ChevronDown className="hidden h-3.5 w-3.5 text-muted-foreground sm:block" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel className="font-normal">
+          <span className="block truncate font-semibold text-foreground">{user.full_name || "Your account"}</span>
+          <span className="mt-0.5 block truncate text-xs text-muted-foreground">{user.email}</span>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild><Link to="/profile"><UserRound className="mr-2 h-4 w-4" />Profile</Link></DropdownMenuItem>
+        <DropdownMenuItem asChild><Link to="/settings"><Settings className="mr-2 h-4 w-4" />Settings</Link></DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => void signOut()} className="text-destructive focus:text-destructive"><LogOut className="mr-2 h-4 w-4" />Sign out</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }
+
+export default PageLayout;
