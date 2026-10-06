@@ -63,18 +63,18 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Custom purple palette
+				// Prompt-Gineer indigo palette
 				purple: {
-					50: '#f5f3ff',
-					100: '#ede9fe',
-					200: '#ddd6fe',
-					300: '#c4b5fd',
-					400: '#a78bfa',
-					500: '#8b5cf6',
-					600: '#7c3aed',
-					700: '#6d28d9',
-					800: '#5b21b6',
-					900: '#4c1d95',
+					50: '#f4f3ff',
+					100: '#ebe9ff',
+					200: '#d9d5ff',
+					300: '#bdb6ff',
+					400: '#988cff',
+					500: '#7869f1',
+					600: '#6554dc',
+					700: '#5142bf',
+					800: '#42369a',
+					900: '#352d78',
 				},
 			},
 			borderRadius: {

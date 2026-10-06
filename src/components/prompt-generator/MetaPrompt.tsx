@@ -15,9 +15,10 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAIService } from "@/hooks/use-ai-service";
+import type { PromptSectionDraft } from "./types";
 
 interface MetaPromptProps {
-  onPromptDataChange?: (sections: any[]) => void;
+  onPromptDataChange?: (sections: PromptSectionDraft[]) => void;
 }
 
 const clearFrameworkCriteria = [

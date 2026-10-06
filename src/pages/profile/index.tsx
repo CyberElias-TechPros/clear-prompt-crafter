@@ -18,7 +18,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MessageSquare, Heart, Eye, Calendar, Trophy, LayoutTemplate } from "lucide-react";
-import { AdBanner } from "@/components/ads";
 
 interface MyItem {
   id: string;
@@ -165,8 +164,6 @@ export default function ProfilePage() {
   return (
     <div className="container py-8 animate-in fade-in duration-500">
       <div className="max-w-4xl mx-auto space-y-6">
-        <AdBanner size="small" position="top" className="mb-6" />
-
         <Card>
           <CardHeader>
             <div className="flex items-center space-x-4">

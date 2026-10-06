@@ -12,14 +12,19 @@ interface AdBannerProps {
   className?: string;
 }
 
+// First-party promotion slots remain off unless explicitly enabled after a policy review.
+// This app does not bundle the Google Mobile Ads SDK or AdMob scripts.
+const ADS_ENABLED = import.meta.env.VITE_ENABLE_ADS === "true";
+
 const AdBanner: React.FC<AdBannerProps> = ({ size, position, className = "" }) => {
   const [ad, setAd] = useState<Ad | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
-    // Premium users never see ads.
-    if (user?.is_premium) {
+    // Do not request or render promotional content by default. This is a fail-closed
+    // guard while ad placements are being reviewed for policy and content suitability.
+    if (!ADS_ENABLED || user?.is_premium) {
       setAd(null);
       return;
     }
@@ -45,7 +50,7 @@ const AdBanner: React.FC<AdBannerProps> = ({ size, position, className = "" }) =
     };
   }, [size, position, user?.is_premium]);
 
-  if (user?.is_premium || dismissed || !ad) return null;
+  if (!ADS_ENABLED || user?.is_premium || dismissed || !ad) return null;
 
   const sizeClasses = {
     small: "min-h-[100px] w-full",

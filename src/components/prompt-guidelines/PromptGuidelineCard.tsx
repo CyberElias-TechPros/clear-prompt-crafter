@@ -1,102 +1,44 @@
-
 import React from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info, AlertTriangle, CheckCircle, HelpCircle, Search, Bug } from "lucide-react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { AlertTriangle, Bug, Check, CheckCircle2, HelpCircle, Info } from "lucide-react";
 
 interface GuidelineProps {
   title: string;
   description: string;
   content: string[];
-  variant?: 'default' | 'tip' | 'warning' | 'success' | 'debug';
+  variant?: "default" | "tip" | "warning" | "success" | "debug";
 }
 
-const PromptGuidelineCard: React.FC<GuidelineProps> = ({
-  title,
-  description,
-  content,
-  variant = 'default',
-}) => {
-  // Select icon based on variant
-  const renderIcon = () => {
-    switch (variant) {
-      case 'tip':
-        return <Info className="h-4 w-4" />;
-      case 'warning':
-        return <AlertTriangle className="h-4 w-4 text-amber-500" />;
-      case 'success':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'debug':
-        return <Bug className="h-4 w-4 text-blue-500" />;
-      default:
-        return <HelpCircle className="h-4 w-4" />;
-    }
-  };
+const variantStyles = {
+  default: { icon: HelpCircle, iconClass: "bg-[#f1f0f6] text-[#747586]", bulletClass: "text-[#8b8c99]" },
+  tip: { icon: Info, iconClass: "bg-[#efedff] text-[#6252d1]", bulletClass: "text-[#7065ce]" },
+  warning: { icon: AlertTriangle, iconClass: "bg-amber-50 text-amber-600", bulletClass: "text-amber-500" },
+  success: { icon: CheckCircle2, iconClass: "bg-emerald-50 text-emerald-600", bulletClass: "text-emerald-500" },
+  debug: { icon: Bug, iconClass: "bg-blue-50 text-blue-600", bulletClass: "text-blue-500" },
+};
 
-  // Select background color based on variant
-  const getAlertStyles = () => {
-    switch (variant) {
-      case 'tip':
-        return "bg-muted";
-      case 'warning':
-        return "bg-amber-50 dark:bg-amber-950/30";
-      case 'success':
-        return "bg-green-50 dark:bg-green-950/30";
-      case 'debug':
-        return "bg-blue-50 dark:bg-blue-950/30";
-      default:
-        return "bg-muted";
-    }
-  };
-
-  // Get title prefix based on variant
-  const getTitlePrefix = () => {
-    switch (variant) {
-      case 'tip':
-        return "Tip #";
-      case 'warning':
-        return "Warning #";
-      case 'success':
-        return "Practice #";
-      case 'debug':
-        return "Debug Tip #";
-      default:
-        return "Item #";
-    }
-  };
+const PromptGuidelineCard: React.FC<GuidelineProps> = ({ title, description, content, variant = "default" }) => {
+  const style = variantStyles[variant];
+  const Icon = style.icon;
 
   return (
-    <Card className="w-full shadow-lg">
-      <CardHeader>
-        <CardTitle className={`text-xl font-bold ${
-          variant === 'warning' ? 'text-amber-600' :
-          variant === 'success' ? 'text-green-600' :
-          variant === 'debug' ? 'text-blue-600' :
-          'text-purple-700'
-        }`}>
-          {title}
-        </CardTitle>
-        <CardDescription>{description}</CardDescription>
+    <Card className="h-full border-border/75 bg-white/90 shadow-[0_4px_16px_rgba(30,30,48,0.03)] dark:bg-card">
+      <CardHeader className="flex-row items-start gap-3 space-y-0 p-4 pb-3">
+        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${style.iconClass}`}><Icon className="h-4 w-4" /></span>
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold tracking-[-0.02em]">{title}</h3>
+          <p className="mt-1 text-[11px] leading-5 text-muted-foreground">{description}</p>
+        </div>
       </CardHeader>
-      <CardContent>
-        <ScrollArea className="h-[200px] pr-4">
-          <div className="space-y-4">
-            {content.map((item, index) => (
-              <Alert key={index} variant="default" className={getAlertStyles()}>
-                {renderIcon()}
-                <AlertTitle>{getTitlePrefix()}{index + 1}</AlertTitle>
-                <AlertDescription>{item}</AlertDescription>
-              </Alert>
-            ))}
-          </div>
-        </ScrollArea>
+      <CardContent className="px-4 pb-4 pt-1">
+        <ul className="space-y-2.5">
+          {content.map((item, index) => (
+            <li key={`${item}-${index}`} className="flex items-start gap-2.5 text-[11px] leading-[1.55] text-[#666776] dark:text-muted-foreground">
+              <Check className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${style.bulletClass}`} />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
       </CardContent>
     </Card>
   );

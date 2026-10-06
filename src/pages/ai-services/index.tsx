@@ -28,7 +28,6 @@ import {
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import { AdBanner } from "@/components/ads";
 import {
   Check,
   KeyRound,
@@ -107,7 +106,7 @@ const AIServicesPage = () => {
       setBaseUrl("");
       setModelName("");
     },
-    onError: (error: any) => toast.error(`Error connecting key: ${error.message}`),
+    onError: (error: unknown) => toast.error(`Error connecting key: ${error instanceof Error ? error.message : "Please try again."}`),
     onSettled: () => setIsSubmitting(false),
   });
 
@@ -117,7 +116,7 @@ const AIServicesPage = () => {
       invalidate();
       toast.success("Service status updated");
     },
-    onError: (e: any) => toast.error(`Error updating service: ${e.message}`),
+    onError: (error: unknown) => toast.error(`Error updating service: ${error instanceof Error ? error.message : "Please try again."}`),
   });
 
   const disconnectMutation = useMutation({
@@ -126,13 +125,13 @@ const AIServicesPage = () => {
       invalidate();
       toast.success("Service disconnected");
     },
-    onError: (e: any) => toast.error(`Error disconnecting: ${e.message}`),
+    onError: (error: unknown) => toast.error(`Error disconnecting: ${error instanceof Error ? error.message : "Please try again."}`),
   });
 
   const testMutation = useMutation({
     mutationFn: (name: string) => aiApi.test(name),
     onSuccess: (res) => toast.success(`Connection works! Verified with model ${res.model}`),
-    onError: (e: any) => toast.error(e.message),
+    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Connection test failed."),
   });
 
   const isConnected = (id: string) => connected.some((s) => s.service_name === id);
@@ -154,8 +153,6 @@ const AIServicesPage = () => {
 
   return (
     <div className="container py-8">
-      <AdBanner size="small" position="top" className="mb-6" />
-
       <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-3xl font-bold">AI Services</h1>
