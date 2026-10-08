@@ -2,7 +2,7 @@
 
 import { Env, HttpError, fromB64, nowIso, sha256Hex, timingSafeEqual, toB64, uuid } from "./util";
 
-const PBKDF2_ITERATIONS = 150_000;
+const PBKDF2_ITERATIONS = 100_000;
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 const SESSION_REFRESH_MS = 15 * 24 * 60 * 60 * 1000; // extend once under 15 days left
 
