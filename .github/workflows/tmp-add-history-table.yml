@@ -1,0 +1,14 @@
+name: tmp-add-history-table
+on: workflow_dispatch
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+    steps:
+      - name: Create user_history table (idempotent)
+        run: |
+          npx -y wrangler@latest d1 execute prompt-gineer-db --remote --command "CREATE TABLE IF NOT EXISTS user_history (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, action_type TEXT NOT NULL, data TEXT, created_at TEXT NOT NULL);"
+          npx -y wrangler@latest d1 execute prompt-gineer-db --remote --command "CREATE INDEX IF NOT EXISTS idx_user_history_user ON user_history (user_id, created_at DESC);"
+          npx -y wrangler@latest d1 execute prompt-gineer-db --remote --command "SELECT name FROM sqlite_master WHERE type='table' AND name='user_history';"

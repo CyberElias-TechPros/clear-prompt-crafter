@@ -197,3 +197,13 @@ INSERT OR IGNORE INTO ads (id, title, content, image_url, link_url, ad_size, ad_
  ('30000000-0000-4000-8000-000000000002', 'Prompt Engineering Workshop', 'Join our exclusive AI prompt engineering workshop this weekend.', NULL, 'https://example.com', 'medium', 'side', 1, datetime('now')),
  ('30000000-0000-4000-8000-000000000003', 'Template Library', 'Explore our template library with professional prompts.', NULL, '/community', 'large', 'inline', 1, datetime('now')),
  ('30000000-0000-4000-8000-000000000004', 'Pro Tips', 'Master prompt engineering with our advanced techniques guide.', NULL, '/community', 'small', 'bottom', 1, datetime('now'));
+
+-- Gamification/activity history (written on signup and actions; read on profile).
+CREATE TABLE IF NOT EXISTS user_history (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  action_type TEXT NOT NULL,
+  data TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_user_history_user ON user_history (user_id, created_at DESC);
