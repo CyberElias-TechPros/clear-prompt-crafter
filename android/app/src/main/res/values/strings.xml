@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Prompt-Gineer</string>
+    <string name="shortcut_studio_short">New prompt</string>
+    <string name="shortcut_studio_long">Open the prompt studio</string>
+    <string name="shortcut_refine_short">Refine a prompt</string>
+    <string name="shortcut_refine_long">Review a prompt against CLEAR</string>
+    <string name="shortcut_community_short">Community</string>
+    <string name="shortcut_community_long">Browse community prompts</string>
+    <string name="share_prompt_label">Share prompt</string>
+    <string name="share_prompt_title">Share your prompt</string>
+    <string name="export_data_title">Export your data</string>
+</resources>

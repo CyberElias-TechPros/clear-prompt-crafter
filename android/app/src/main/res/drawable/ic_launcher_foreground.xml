@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Adaptive icon foreground: a prompt card with a spark of inspiration.
+  Everything sits inside the 66dp safe zone of the 108dp canvas.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M38,40 h32 a9,9 0 0 1 9,9 v18 a9,9 0 0 1 -9,9 h-32 a9,9 0 0 1 -9,-9 v-18 a9,9 0 0 1 9,-9 z" />
+
+    <path
+        android:fillColor="#C7C1FF"
+        android:pathData="M38,49 h20 a2,2 0 0 1 0,4 h-20 a2,2 0 0 1 0,-4 z" />
+    <path
+        android:fillColor="#6554DC"
+        android:pathData="M38,58 h30 a2,2 0 0 1 0,4 h-30 a2,2 0 0 1 0,-4 z" />
+    <path
+        android:fillColor="#C7C1FF"
+        android:pathData="M38,67 h14 a2,2 0 0 1 0,4 h-14 a2,2 0 0 1 0,-4 z" />
+
+    <path
+        android:fillColor="#F2B24A"
+        android:pathData="M73,24 l3.2,7.8 L84,35 l-7.8,3.2 L73,46 l-3.2,-7.8 L62,35 l7.8,-3.2 z" />
+    <path
+        android:fillColor="#FFD79A"
+        android:pathData="M87,44 l1.6,3.9 L92.5,49.5 l-3.9,1.6 L87,55 l-1.6,-3.9 L81.5,49.5 l3.9,-1.6 z" />
+</vector>
