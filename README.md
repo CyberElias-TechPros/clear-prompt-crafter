@@ -89,8 +89,8 @@ on API 26+.
 cd android && ./gradlew assembleDebug
 ```
 
-CI (`.github/workflows/android.yml`) runs the domain tests and builds a debug APK on every
-change under `android/`, and publishes the APK as a build artifact.
+CI (`.github/workflows/android.yml`) compiles the app, runs the domain tests and publishes a
+debug APK as a build artifact on every change under `android/`.
 
 ---
 

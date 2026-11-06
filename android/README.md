@@ -107,9 +107,9 @@ local.
 
 The pure-Kotlin layers (`domain`, `core`, DTO mapping, and every view model compiled against
 the repository interfaces) are type-checked with the Kotlin 2.0 compiler, and the domain
-tests were executed with a JUnit-compatible harness (24/24 passing). Compose screens need the
-Android SDK, so CI or a local `./gradlew :app:assembleDebug` is the first full compile of the
-UI; the repository has no prebuilt APK.
+tests were executed with a JUnit-compatible harness (24/24 passing). The GitHub Actions
+workflow compiles the full Compose UI with the Android SDK, runs the same tests on the JVM and
+produces a debug APK, so a green run is an end-to-end build check.
 
 ## Deliberate non-goals
 
