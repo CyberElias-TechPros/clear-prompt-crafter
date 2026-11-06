@@ -25,7 +25,6 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material.icons.rounded.Forum
 import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.Sparkles
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -363,7 +362,7 @@ private fun QuotaChip(state: StudioUiState, onClick: () -> Unit) {
     Box(modifier = Modifier.clickable(onClick = onClick)) {
         BadgeChip(
             text = text,
-            icon = Icons.Rounded.Sparkles,
+            icon = Icons.Rounded.AutoAwesome,
             containerColor = if (state.signedIn) {
                 MaterialTheme.colorScheme.primaryContainer
             } else {

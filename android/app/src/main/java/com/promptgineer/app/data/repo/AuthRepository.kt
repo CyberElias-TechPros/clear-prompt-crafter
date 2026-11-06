@@ -228,7 +228,7 @@ class AuthRepository(
         }
     }
 
-    private fun applyUser(dto: UserDto, fromCache: Boolean) {
+    private suspend fun applyUser(dto: UserDto, fromCache: Boolean) {
         cacheUser(dto)
         _session.value = SessionState.SignedIn(dto.toDomain(), fromCache = fromCache)
     }

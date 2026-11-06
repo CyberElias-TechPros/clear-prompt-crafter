@@ -25,7 +25,6 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Send
-import androidx.compose.material.icons.rounded.Sparkles
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
@@ -303,7 +302,7 @@ private fun CoachAvatar() {
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            imageVector = Icons.Rounded.Sparkles,
+            imageVector = Icons.Rounded.AutoAwesome,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onPrimaryContainer,
             modifier = Modifier.size(15.dp),

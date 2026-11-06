@@ -14,7 +14,6 @@ import androidx.compose.material.icons.rounded.Bookmarks
 import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.Home
-import androidx.compose.material.icons.rounded.PenTool
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -506,7 +505,7 @@ private fun BrandedLoading() {
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    Icons.Rounded.PenTool,
+                    Icons.Rounded.EditNote,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.background,
                     modifier = Modifier.size(24.dp),

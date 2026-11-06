@@ -21,9 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material.icons.rounded.PenTool
 import androidx.compose.material.icons.rounded.Shield
-import androidx.compose.material.icons.rounded.Sparkles
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -51,7 +49,7 @@ private data class OnboardingPage(
 
 private val pages = listOf(
     OnboardingPage(
-        icon = Icons.Rounded.PenTool,
+        icon = Icons.Rounded.AutoAwesome,
         kicker = "Step 1 · Build",
         title = "From fuzzy idea to a prompt that works",
         body = "Fill in context, task, guidelines and constraints. The preview assembles itself as you type, so you always see exactly what you'll paste.",
@@ -166,7 +164,7 @@ fun OnboardingScreen(
                         verticalAlignment = Alignment.Top,
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.Sparkles,
+                            imageVector = Icons.Rounded.AutoAwesome,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp),

@@ -23,7 +23,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.PenTool
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.Button
@@ -86,7 +85,7 @@ fun AuthScreen(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = Icons.Rounded.PenTool,
+                    imageVector = Icons.Rounded.AutoAwesome,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.background,
                     modifier = Modifier.size(20.dp),
@@ -151,8 +150,9 @@ fun AuthScreen(
             }
 
             Spacer(Modifier.height(16.dp))
-            if (state.formError != null) {
-                InlineBanner(text = state.formError, tone = BannerTone.ERROR)
+            val formError = state.formError
+            if (formError != null) {
+                InlineBanner(text = formError, tone = BannerTone.ERROR)
                 Spacer(Modifier.height(12.dp))
             }
 

@@ -72,13 +72,18 @@ jobs:
             } catch (error) {
               log = 'Gradle log was not created.';
             }
-            const lines = log.trimEnd().split('\n');
-            const tail = lines.slice(-300).join('\n');
+            const lines = log.split('\n');
+            const interesting = lines.filter((line) =>
+              /^e: |^> Task .* FAILED|What went wrong|Execution failed|^\* Try:/.test(line),
+            );
+            const body = interesting.length > 0
+              ? interesting.slice(0, 150).join('\n')
+              : lines.slice(-120).join('\n');
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: '### Android build failed\n\n<details><summary>Last 300 log lines</summary>\n\n```\n' + tail + '\n```\n\n</details>',
+              body: '### Android build failed\n\n```\n' + body + '\n```',
             });
 
       - name: Upload debug APK
