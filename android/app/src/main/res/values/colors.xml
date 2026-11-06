@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="splash_background">#17162A</color>
+    <color name="brand_indigo">#6554DC</color>
+    <color name="brand_indigo_deep">#5142BF</color>
+    <color name="brand_ink">#24223B</color>
+    <color name="brand_amber">#F2B24A</color>
+    <color name="launcher_background">#24223B</color>
+</resources>
