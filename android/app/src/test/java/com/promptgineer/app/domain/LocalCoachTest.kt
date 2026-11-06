@@ -7,7 +7,7 @@ import org.junit.Test
 class LocalCoachTest {
 
     @Test
-    fun emptyMessageGetsA gentlePrompt() {
+    fun emptyMessageGetsAGentlePrompt() {
         val reply = LocalCoach.reply("   ")
         assertTrue(reply.contains("working on"))
     }

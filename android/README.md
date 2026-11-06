@@ -86,22 +86,30 @@ emulator host (`10.0.2.2`) by the network security config.
 
 ## Tests
 
-`app/src/test` covers the parts that must be correct offline:
+`app/src/test` covers the parts that must be correct offline. All 24 tests pass:
 
-- prompt composition and parsing round-trips,
-- CLEAR scoring, fix targeting and improved-draft assembly,
-- recipe integrity (every recipe contains the four essentials and only known sections),
-- local coach routing for common job types.
+- prompt composition and parsing round-trips (8 tests),
+- CLEAR scoring, fix targeting and improved-draft assembly (6 tests),
+- recipe integrity — every recipe contains the four essentials and only known sections (4 tests),
+- local coach routing for common job types (5 tests).
 
 The view models depend on Android lifecycle and repository interfaces, so they are not
 covered by JVM unit tests; their logic is exercised by the screens.
 
+### Continuous integration
+
+`.github/workflows/android.yml` runs on changes under `android/`: it installs JDK 17 and the
+Android SDK, runs `./gradlew :app:testDebugUnitTest`, assembles a debug APK and uploads both
+the APK and the test report as build artifacts. No secrets are needed; release signing stays
+local.
+
 ### Verification status
 
 The pure-Kotlin layers (`domain`, `core`, DTO mapping, and every view model compiled against
-the repository interfaces) are type-checked with the Kotlin 2.0 compiler. Compose screens
-need the Android SDK, so run `./gradlew :app:assembleDebug` (or Android Studio) to compile
-them; the repository has no prebuilt APK.
+the repository interfaces) are type-checked with the Kotlin 2.0 compiler, and the domain
+tests were executed with a JUnit-compatible harness (24/24 passing). Compose screens need the
+Android SDK, so CI or a local `./gradlew :app:assembleDebug` is the first full compile of the
+UI; the repository has no prebuilt APK.
 
 ## Deliberate non-goals
 

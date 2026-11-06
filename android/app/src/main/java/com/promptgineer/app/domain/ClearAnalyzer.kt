@@ -425,7 +425,15 @@ object ClearAnalyzer {
             criteria = criteria,
             overallScore = 0,
             verdict = "Start with a few sentences",
-            fixes = emptyList(),
+            fixes = listOf(
+                FixSuggestion(
+                    id = "start_with_context",
+                    title = "Start with context",
+                    detail = "Tell the model who it should be, who the answer is for and what situation it is answering.",
+                    sectionType = "context",
+                    snippet = "You are an experienced … helping …\nThe audience is …\nThe situation is …",
+                ),
+            ),
             improvedPrompt = "",
         )
     }
