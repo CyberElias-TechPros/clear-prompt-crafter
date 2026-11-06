@@ -58,7 +58,7 @@ jobs:
       - name: Build and test
         run: |
           set -o pipefail
-          ./gradlew :app:testDebugUnitTest :app:assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/gradle.log
+          ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease --no-daemon --stacktrace 2>&1 | tee /tmp/gradle.log
 
       - name: Report build failure on the pull request
         if: failure() && github.event_name == 'pull_request'
