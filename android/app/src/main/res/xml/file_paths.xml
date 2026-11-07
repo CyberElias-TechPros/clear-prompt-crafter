@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- FileProvider paths used only when the user explicitly exports their
+     account data or shares a prompt document. -->
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <cache-path name="exports" path="exports/" />
+    <cache-path name="shared_prompts" path="shared_prompts/" />
+</paths>

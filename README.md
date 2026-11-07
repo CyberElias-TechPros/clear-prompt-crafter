@@ -6,11 +6,12 @@ built-in AI tier** (NVIDIA NIM free models) plus **bring-your-own-key (BYOK)** s
 
 ## Architecture
 
-| Layer    | Where it runs                        | Tech                                    |
-| -------- | ------------------------------------ | --------------------------------------- |
-| Frontend | **Vercel**                           | Vite + React + TypeScript + shadcn/ui   |
-| Backend  | **Cloudflare Workers + D1 (SQLite)** | A single Worker (see [`worker/`](worker)) |
-| AI       | NVIDIA NIM (free) + user BYOK keys   | OpenAI-compatible chat completions      |
+| Layer          | Where it runs                        | Tech                                     |
+| -------------- | ------------------------------------ | ---------------------------------------- |
+| Web frontend   | **Vercel**                           | Vite + React + TypeScript + shadcn/ui    |
+| Android client | **Google Play / sideload**           | Kotlin + Jetpack Compose (see [`android/`](android)) |
+| Backend        | **Cloudflare Workers + D1 (SQLite)** | A single Worker (see [`worker/`](worker)) |
+| AI             | NVIDIA NIM (free) + user BYOK keys   | OpenAI-compatible chat completions       |
 
 The backend is fully self-contained: auth (email + password, PBKDF2), the database, the
 encrypted BYOK key vault, gamification, ads, and the AI gateway all live in the Worker.
@@ -52,7 +53,44 @@ The app now runs end-to-end on Vercel + Cloudflare with a working free AI tier.
 
 ### Advertising safety
 
-The web app's first-party promotional banners are **disabled by default**, and no ad slots are currently rendered in the public experience. They are not Google-served ads, and this repository does not include the Android client or the Google Mobile Ads / AdMob SDK. Keep banners off while reviewing content and placement suitability; do not treat this web change as a substitute for updating and resubmitting the Android release that received the Play policy notice. The banner component fails closed unless `VITE_ENABLE_ADS=true` is explicitly set after review. User-created prompt feeds and detail pages do not include ad placements.
+The web app's first-party promotional banners are disabled by default (`VITE_ENABLE_ADS` must
+be set explicitly after a content review). The Android client contains **no WebView and no
+Google Mobile Ads / AdMob SDK**: it can render first-party house ads that an administrator
+creates inside the app, and those cards fail closed when no active placement exists. Prompt
+feeds and detail pages never include ad slots. Review any house-ad copy and destination before
+enabling a placement in production.
+---
+
+## Native Android app
+
+[`android/`](android) is a complete native client for the same API — Kotlin, Jetpack Compose,
+Material 3, and no WebView or cross-platform runtime. It implements the full product:
+accounts, the three builders (Structured, Coach, Refine) with offline CLEAR review, recipes,
+community browsing with likes/comments/bookmarks, a local-first library, leaderboard, AI
+services (free NVIDIA NIM tier + BYOK), profile, settings, admin house ads, contact and
+bundled Terms/Privacy.
+
+Highlights:
+
+- **Offline-capable builders.** Composition, CLEAR scoring, fixes and the conversational
+  fallback are pure Kotlin, so they work with no account and no network.
+- **Local-first storage.** Drafts, the autosaved workspace, coach transcript and bookmarks
+  live in SQLite; cached feeds are clearly labelled with their age.
+- **Encrypted session storage.** The bearer token uses `EncryptedSharedPreferences` with a
+  graceful fallback, and provider keys never return from the server.
+- **Native integrations.** Share sheet and `PROCESS_TEXT` route selected text into Refine,
+  dynamic shortcuts open the builder, and exports use `FileProvider`.
+
+Build instructions, architecture notes and test coverage are documented in
+[`android/README.md`](android/README.md). Requirements: JDK 17, Android SDK 35, and a device
+on API 26+.
+
+```bash
+cd android && ./gradlew assembleDebug
+```
+
+CI (`.github/workflows/android.yml`) compiles the app, runs the domain tests and publishes a
+debug APK as a build artifact on every change under `android/`.
 
 ---
 
